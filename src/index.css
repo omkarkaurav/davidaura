@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+
+
+body{
+  background-color: #ffffff !important;
+}
+
+/* Scrollbar container */
+::-webkit-scrollbar {
+  width: 6px; /* width for vertical scrollbar */
+  margin-right: 5px;
+
+}
+
+/* Track (background) */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* Thumb (scroll indicator) */
+::-webkit-scrollbar-thumb {
+  background: #000000;
+  border-radius: 6px;
+}
+
+/* Hover effect for the thumb */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.product-heading {
+    font-size: 3.2rem;
+    font-weight: 900;
+    margin-top: 4rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .product-heading::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 5px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px; /* Adjust the thickness of the underline */
+    background-color: currentColor; /* Matches the text color */
+    transition: width 0.5s ease-in-out;
+  }
+  
+  .product-heading:hover::after {
+    width: 100%;
+  }

@@ -1,0 +1,297 @@
+
+html{
+  overflow-x: hidden;
+}
+section {
+  width: 100%;
+  min-height: 100vh;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+} 
+.hero-container {
+  border-radius: 22px;
+  width: 90%;
+  min-height: 80vh; /* Adjusted to 80vh to ensure hero section's minimum height */
+  margin-top: 3%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 12px 20px -12px;
+}
+
+.title {
+  width: 90%;
+  height: auto; /* Let the title grow based on content */
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 15px;
+  position: relative;
+  /* z-index: 9999; */
+  color: black;
+  text-align: center;
+}
+
+.head-title {
+  font-size: 3.5rem;
+  color: var(--blue);
+  font-weight: 100;
+}
+
+.title p {
+  font-size: 1.3rem;
+  color: var(--blue);
+  font-family: cursive;
+  font-style: italic;
+  font-weight: 100;
+}
+
+.hero-bottom {
+  width: 100%;
+  min-height: 10vh; /* Ensure hero-bottom has enough space */
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+.shop-btn {
+  margin-left: 80px;
+  position: relative;
+  z-index: 99;
+  margin-top: 30px;
+}
+
+.shop-btn a {
+  text-decoration: none;
+  color: white;
+}
+
+/* Button Base Styles */
+.shop-btn button {
+  position: relative; /* For pseudo-element positioning */
+  overflow: hidden;   /* Hide the overlay outside the button */
+  display: flex;
+  border: 1px solid black;
+  /* background-color: white; */
+  gap: 10px;
+  padding: 5px 10px;
+  padding-left: 20px;
+  border-radius: 99px;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  background-color: rgb(0, 0, 0);  /* Change this to #ffffff later */
+  font-weight: bold;
+  font-size: 1.09rem;
+}
+
+/* Ensure the button text remains above the overlay */
+.shop-btn button .btn-text {
+  padding: 5px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Style for the inner span (arrow icon) */
+.shop-btn button span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  border: none;
+  border-radius: 99px;
+  padding: 5px;
+  z-index: 2;
+}
+
+/* Pseudo-element overlay for hover effect */
+/* (Temporarily using semi-transparent red to test visibility) */
+.shop-btn button::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background-color:rgb(0, 21, 48); /* Ensure --blue is defined in your variables */
+  border-radius: 99px;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.8s ease;
+  z-index: 1; /* Behind the text */
+}
+
+/* Hover state: change text color and expand the overlay */
+.shop-btn button:hover {
+  color: rgb(0, 0, 0);
+}
+
+.shop-btn button:hover::after {
+  transform: scaleY(1);
+}
+
+
+.social-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 5px;
+  gap: 10px;
+  border: none;
+  border-top-left-radius: 22px;
+  border-bottom-right-radius: 22px;
+  position: relative;
+  top: 20px;
+  right: -20px;
+  background-color: white;
+  /* z-index: 9999; */
+  box-shadow: rgb(204, 219, 232) 3px 3px 6px 0px inset,
+    rgba(255, 255, 255, 0.5) -3px -3px 6px 1px inset;
+}
+
+.bottle-img {
+  background-color: transparent;
+  position: relative;
+  width: 250px;
+  margin-top: 0px;
+  margin-left: 0px;
+  transform-style: preserve-3d;
+  transform: perspective(14cm) rotateX(-2deg) rotateY(5deg);
+  z-index: 99;
+}
+
+@media (max-width: 480px) {
+  /* Hero Section Media Query (Just Adjusted Height) */
+  section {
+    width: 100%;
+    min-height: 100vh; /* Allow section to grow based on content */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .hero-container {
+    border-radius: 22px;
+    width: 90%;
+    height: auto; /* Let hero section height adjust based on content */
+    margin-top: 5%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 25 px 20px -12px;
+  }
+
+  .title {
+    width: 90%;
+    height: auto; /* Let the title grow based on content */
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 15px;
+    position: relative;
+    /* z-index: 999; */
+    color: black;
+    text-align: center;
+  }
+
+  .head-title {
+    font-size: 1.7rem;
+    color: var(--blue);
+  }
+
+  .title p{
+    font-size: 1rem;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .hero-bottom {
+    width: 100%;
+    min-height: 10vh; /* Ensure hero-bottom has enough space */
+    /* padding: 20px; */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+  }
+
+  .shop-btn {
+    margin-left: 0px;
+    margin-top: 100px;
+    position: relative;
+    z-index: 999;
+  }
+
+  .shop-btn button {
+    position: relative; /* For pseudo-element positioning */
+    overflow: hidden;   /* Hide the overlay outside the button */
+    display: flex;
+    border: 1px solid black;
+    background-color: rgb(0, 0, 0);  /* Change this to #ffffff later */
+    gap: 10px;
+    padding: 5px 10px;
+    padding-left: 20px;
+    border-radius: 99px;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1rem;
+  }
+
+  .shop-btn button span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border: none;
+    border-radius: 99px;
+  }
+
+
+  
+
+  .social-link {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 5px;
+    gap: 10px;
+    border: none;
+    border-top-left-radius: 22px;
+    border-bottom-right-radius: 22px;
+    position: relative;
+    top: 20px;
+    right: -20px;
+    background-color: white;
+    z-index: 9;
+    box-shadow: rgb(204, 219, 232) 3px 3px 6px 0px inset,
+      rgba(255, 255, 255, 0.5) -3px -3px 6px 1px inset;
+  }
+
+  .bottle-img {
+    background-color: transparent;
+    position: relative;
+    width: 250px;
+    margin-top: 0px;
+    margin-left: 0px;
+    transform-style: preserve-3d;
+    transform: perspective(14cm) rotateX(-2deg) rotateY(5deg);
+    z-index: 99;
+  }
+}
+
+

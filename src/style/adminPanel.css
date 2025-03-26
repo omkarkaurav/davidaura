@@ -1,0 +1,528 @@
+/* ================================================================== */
+/*                         Admin Panel Global Styles                    */
+/* ================================================================== */
+
+/* Overall container styling for the admin panel */
+.admin-panel {
+  max-width: 1200px;
+  margin: 80px auto 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+/* Global placeholder text color for inputs */
+.admin-panel input::placeholder {
+  color: black;
+}
+
+/* Admin panel main heading */
+.admin-panel h1 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 30px;
+  font-weight: bold;
+}
+
+/* ================================================================== */
+/*                           Navigation Styles                          */
+/* ================================================================== */
+
+/* Navigation container for admin panel */
+.admin-nav {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+/* Navigation buttons styling */
+.admin-nav button {
+  background-color: #000;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  margin: 0 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+/* Hover and active state for navigation buttons */
+.admin-nav button:hover,
+.admin-nav button.active {
+  background-color: #333;
+}
+
+/* ================================================================== */
+/*                         Admin Content Area                         */
+/* ================================================================== */
+
+/* Container for admin panel content */
+.admin-content {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.admin-content h2 {
+  margin-bottom: 30px;
+}
+
+/* ================================================================== */
+/*                           Button Styles                            */
+/* ================================================================== */
+
+/* General admin button styling */
+.admin-btn {
+  background-color: #000;
+  color: #fff;
+  padding: 5px 10px;
+  border: 1px solid #000;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+}
+
+/* Hover state for admin buttons */
+.admin-btn:hover {
+  background-color: whitesmoke;
+  color: #000;
+}
+
+/* ================================================================== */
+/*                            Table Styles                            */
+/* ================================================================== */
+
+/* Styling for admin tables (e.g., products, coupons) */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.admin-table th,
+.admin-table td {
+  border: 1px solid #ddd;
+  padding: 12px 15px;
+  text-align: left;
+}
+
+.admin-table th {
+  background-color: #000;
+  color: #fff;
+}
+
+.admin-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.admin-table tr:hover {
+  background-color: #e9e9e9;
+}
+
+/* ================================================================== */
+/*                        Order Card Styles                           */
+/* ================================================================== */
+
+/* Styling for individual order cards in the Orders tab */
+.order-card-admin {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.order-card-admin h3 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+.order-card-admin p {
+  margin: 5px 0;
+  font-size: 0.95rem;
+}
+
+.order-card-admin label {
+  display: block;
+  margin: 8px 0;
+}
+
+.order-card-admin select {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* ================================================================== */
+/*                        Progress Steps Styles                         */
+/* ================================================================== */
+
+.progress-steps {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.step-wrapper {
+  flex: 1;
+  text-align: center;
+}
+
+/* ================================================================== */
+/*                           Modal Styles                             */
+/* ================================================================== */
+
+/* Overlay for modal dialogs */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+/* Modal container styling */
+.modal {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  z-index: 10001;
+  border: 2px solid #333;
+  color: #333;
+}
+
+.modal h2 {
+  margin-top: 0;
+  color: #333;
+}
+
+.modal-field {
+  margin-bottom: 15px;
+}
+
+.modal-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-field input,
+.modal-field select,
+.modal-field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #333;
+}
+
+.image-preview {
+  margin-bottom: 10px;
+}
+
+.image-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  margin-left: 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.modal-actions button[type="submit"] {
+  background-color: #000;
+  color: #fff;
+}
+
+.modal-actions button[type="button"] {
+  background-color: #ccc;
+  color: #333;
+}
+
+/* ================================================================== */
+/*                          Search Bar Styles                         */
+/* ================================================================== */
+
+/* Order Search Bar */
+.order-search-bar {
+  margin-bottom: 20px;
+  text-align: right;
+}
+
+.order-search-bar input[type="text"] {
+  width: 250px;
+  padding: 8px 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  outline: none;
+  transition: border 0.3s ease;
+}
+
+.order-search-bar input[type="text"]:focus {
+  border-color: #000;
+}
+
+/* ================================================================== */
+/*                          Orders Header & Tabs                      */
+/* ================================================================== */
+
+/* Orders header with information and search bar */
+.orders-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+.orders-header > span {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* Order tabs styling */
+.order-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.order-tabs button {
+  padding: 8px 12px;
+  border: none;
+  background-color: #f0f0f0;
+  color: #333;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.order-tabs button:hover {
+  background-color: #ddd;
+}
+
+.order-tabs button.active {
+  background-color: #333;
+  color: #fff;
+}
+
+/* Order search input styling */
+.order-search {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.order-search input {
+  width: 200px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* ================================================================== */
+/*                           Users Tab Styles                         */
+/* ================================================================== */
+
+.users-tab {
+  margin: 20px 0;
+}
+
+.user-search {
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.user-search input {
+  width: 250px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.user-card {
+  border: 1px solid #e0e0e0;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  background-color: #fff;
+}
+
+.user-card h3 {
+  margin-top: 0;
+}
+
+.user-orders {
+  margin-top: 10px;
+  padding-left: 15px;
+  border-left: 2px solid #ccc;
+}
+
+.user-order {
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+}
+
+/* ================================================================== */
+/*                         Queries Tab Styles                         */
+/* ================================================================== */
+
+.queries-tab {
+  padding: 20px;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.queries-tab h2 {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.query-search {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.query-search input {
+  width: 250px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.query-card {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.query-card p {
+  margin: 5px 0;
+  font-size: 1rem;
+}
+
+.query-card strong {
+  color: #333;
+}
+
+/* ================================================================== */
+/*                          Responsive Styles                         */
+/* ================================================================== */
+
+/* Devices with max-width 1200px */
+@media (max-width: 1200px) {
+  .admin-panel {
+    padding: 15px;
+  }
+  
+  .admin-nav button {
+    padding: 8px 16px;
+    margin: 0 5px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Devices with max-width 992px */
+@media (max-width: 992px) {
+  .admin-panel {
+    padding: 10px;
+  }
+  
+  .admin-table th,
+  .admin-table td {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .order-search input,
+  .user-search input,
+  .query-search input {
+    width: 200px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Devices with max-width 768px */
+@media (max-width: 768px) {
+  .admin-nav {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .admin-nav button {
+    margin: 5px 0;
+    width: 100%;
+  }
+  
+  .admin-table,
+  .order-card-admin,
+  .queries-tab,
+  .users-tab {
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+/* Devices with max-width 480px */
+@media (max-width: 480px) {
+  .admin-panel {
+    padding: 5px;
+  }
+  
+  .admin-nav button {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .order-search input,
+  .user-search input,
+  .query-search input {
+    width: 180px;
+    font-size: 0.8rem;
+  }
+  
+  .admin-table th,
+  .admin-table td {
+    padding: 8px;
+    font-size: 0.8rem;
+  }
+}

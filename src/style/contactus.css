@@ -1,0 +1,50 @@
+/* src/style/contactus.css */
+.contact-us-section {
+    min-height: 80vh;
+    max-width: 600px;
+    margin: 80px auto;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .contact-us-section h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .contact-form .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .contact-form input,
+  .contact-form textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  .contact-form input::placeholder{
+    color: black;
+  }
+  .contact-form textarea {
+    resize: vertical;
+    height: 100px;
+  }
+  
+  button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  button[type="submit"] {
+    background-color: #007bff;
+    color: #fff;
+  }
+  

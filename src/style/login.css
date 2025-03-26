@@ -1,0 +1,315 @@
+/* Google Fonts Link */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap");
+/* Resetting default styling and setting font-family */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Montserrat", sans-serif;
+}
+body {
+  width: 100%;
+  background: #ffffff;
+}
+
+.login-register-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding:5px;
+}
+
+/* Login form styling */
+.login_form {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin: 50px 5px 0px 5px;
+  border: 1px solid rgb(201, 200, 200);
+}
+
+.login_form h3 {
+  font-size: 20px;
+  text-align: center;
+  font-weight: 700;
+  color: #4954d0;
+  margin-top: 5px;
+  margin-bottom: 30px;
+}
+
+.input_box input::placeholder{
+  color:#b1b4d8;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.login_form p {
+  text-align: center;
+  font-weight: 500;
+}
+
+.login_form .separator {
+  position: relative;
+  margin-bottom: 5px;
+}
+
+.login_form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: rgb(85, 84, 84);
+}
+
+.register_form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: rgb(85, 84, 84);
+}
+
+/* Input field styling */
+.Login_form .input_box input {
+  width: 100%;
+  height: 57px;
+  border-radius: 5px;
+  outline: none;
+  background: #f8f8fb;
+  font-size: 17px;
+  margin-bottom: 15px;
+  transition: 0.2s ease;
+}
+
+
+
+.login_form .input_box .password_title {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.login_form .input_box {
+  position: relative;
+}
+
+a {
+  text-decoration: none;
+  color: #626cd6;
+  font-weight: 500;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Login button styling */
+.login_form button {
+  width: 100%;
+  border-radius: 5px;
+  border: none;
+  outline: none;
+  background:#4954d0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-bottom: 15px;
+  transition: 0.3s ease;
+}
+
+#loginBtn{
+  background-color: #4954d0;
+}
+
+.input_box {
+  margin-bottom: 20px;
+}
+
+
+.input_box input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+.login_form .input_box input:focus,
+.register_form .input_box input:focus {
+  border: 1px solid #626cd6;
+}
+.login_form button {
+  width: 100%;
+  padding: 10px;
+  background: #4954d0;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.register_form button {
+  width: 100%;
+  padding: 10px;
+  background: #4954d0;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+
+.error {
+  color: red;
+  font-size: 12px;
+  display: none; 
+  margin-top: 5px;
+}
+
+.register_form {
+  width: 30%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px 30px;
+  margin: 100px 0px 50px 0px;
+  border: 1px solid rgb(201, 200, 200);
+}
+
+.register_form h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #4954d0;
+  text-align: center;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+.phone-number {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.phone-number input {
+  width: 60%;
+  height:100%;
+  padding:15px;
+}
+.phone-number button {
+  width: 40%;
+  height:100%;
+  padding:15px;
+}
+.register-password {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+
+.register_form p {
+  text-align: center;
+  font-weight: 500;
+  margin-top: 20px;
+}
+
+.register_form .separator {
+  position: relative;
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+/* Login option separator styling */
+
+.error {
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.password_container {
+  display: flex;
+  flex-direction: column;
+}
+
+.password-info {
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.password-info ul {
+  list-style-type: disc;
+  padding-left: 20px; /* add some left padding so the disc is visible */
+  margin: 4px 0;
+}
+
+.password-info li {
+  margin-bottom: 2px;
+}
+
+@media (max-width: 480px) {
+  .register_form {
+    width: 100%;
+    padding: 15px 10px;
+    margin: 30px 5px 0px 5px;
+  }
+
+  .register_form label {
+    font-size: 12px;
+  }
+
+  .register_form h3 {
+    font-size: 30px;
+    margin-bottom: 35px;
+  }
+  .phone-number {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+  
+  .phone-number input {
+    width: 60%;
+    height:100%;
+    padding:15px;
+  }
+  .phone-number button {
+    width: 40%;
+    height:100%;
+    padding:15px;
+  }
+  .register-password {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .register-password {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+  }
+
+  #registerBtn {
+    width: 100%;
+    padding: 10px;
+    background: #626cd6;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .register_form p {
+    margin-top: 0px;
+  }
+
+  .login_form h3 {
+    font-size: 30px;
+  }
+  
+}

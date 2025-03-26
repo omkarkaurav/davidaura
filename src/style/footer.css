@@ -1,0 +1,121 @@
+
+.footer {
+    width: 100%;
+    background: #ffffff;
+    padding: 20px 0;
+    box-shadow: rgba(136, 165, 191, 0.48) 6px 2px 16px 0px, rgba(255, 255, 255, 0.8) -6px -2px 16px 0px;
+    border-top-left-radius: 32px;
+    border-top-right-radius: 32px;
+    margin-top: 80px;
+    align-self: center;
+    overflow-x: hidden;
+}
+  
+.footer-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footer-col {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+}
+
+.subscribe {
+    display: flex;
+    justify-content: center;
+}
+
+.footer-nav-links {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    color: #333;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.footer-nav-links a{
+    text-decoration: none;
+    color: #333;
+    font-size: 16px;
+}
+
+.social-links {
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.footer-bottom {
+    
+    text-align: center;
+}
+
+.site-logo{
+    font-size: 3.8rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.footer-bottom p {
+    color: #666;
+    font-size: 14px;
+}
+
+.footer-bottom .footer-container{
+    display: flex;
+    flex-direction: column;
+    /* justify-content: space-between; */
+    align-content:space-between ;
+    gap: 15px;
+}
+
+.footer-nav-links a {
+    color: #000;
+    text-decoration: none !important;
+    position: relative; /* Required for absolute positioning of the pseudo-element */
+}
+  
+footer a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px; /* Adjust as needed */
+    width: 0;
+    height: 2px; /* Thickness of the underline */
+    background-color: currentColor; /* Uses the link's color */
+    transition: width 0.5s ease-in-out;
+}
+  
+
+footer a:hover::after {
+    width: 100%;
+}
+
+
+@media(max-width:430px){
+    .row{
+        flex-direction: column;
+    }
+
+    .site-logo {
+        font-size: 3rem;
+        font-weight: bold;
+        color: #333;
+    }
+    
+}
