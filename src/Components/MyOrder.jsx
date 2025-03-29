@@ -26,27 +26,26 @@ const formatDateTime = (dateString) => {
  */
 const MyOrders = () => {
   // Retrieve orders and updater function from OrderContext.
-  const { orders, setOrders } = useContext(OrderContext);
-  // Retrieve user data (e.g., orderCount) from UserContext.
-  const { user,setUser } = useContext(UserContext);
-
+  // const { orders, setOrders } = useContext(OrderContext);
+  // Retrieve userdetails data (e.g., orderCount) from UserContext.
+  const { userdetails, setUserdetails, orders } = useContext(UserContext);
+  // console.log(orders);
   // Local state to manage whether each order's tracking details are expanded.
   const [expandedOrders, setExpandedOrders] = useState({});
   // Local state for cancellation messages, keyed by order id.
   const [cancellationMessages, setCancellationMessages] = useState({});
 
   // Initialize tracking expansion for each order when orders update.
-  useEffect(() => {
-    if (orders && orders.length > 0) {
-      const initialExpanded = {};
-      orders.forEach((order) => {
-        initialExpanded[order.id] = true; // All orders open by default.
-      });
-      setExpandedOrders(initialExpanded);
-    }
-    setUser(prevUser => ({ ...prevUser, orderCount: orders.length }));
-  }, [orders, setUser]);
-  
+  // useEffect(() => {
+  //   if (orders && orders.length > 0) {
+  //     const initialExpanded = {};
+  //     orders.forEach((order) => {
+  //       initialExpanded[order.orderId] = true; // All orders open by default.
+  //     });
+  //     setExpandedOrders(initialExpanded);
+  //   }
+  //   setUserdetails((prevUser) => ({ ...prevUser, orderCount: orders.length }));
+  // }, []);
 
   /**
    * Renders progress steps for an order.
@@ -57,7 +56,8 @@ const MyOrders = () => {
   const renderStepProgress = (progressStep, status) => {
     const steps = ["Order Placed", "Processing", "Shipped", "Delivered"];
     // If order is delivered, treat final step as one beyond the last step.
-    const finalProgressStep = status === "Delivered" ? steps.length + 1 : progressStep;
+    const finalProgressStep =
+      status === "Delivered" ? steps.length + 1 : progressStep;
 
     return (
       <div className="progress-steps">
@@ -131,34 +131,38 @@ const MyOrders = () => {
     console.log("Reorder", orderId);
     // Implement reorder logic here (e.g., add order items to cart)
   };
+  useEffect(() => {
+    console.log("Orders received:", orders);
+  }, [orders]);
 
   return (
     <div className="myorder-container">
       <h1 className="my-order-title">My Orders</h1>
-      {/* Example of displaying user-related information */}
+      {/* Example of displaying userdetails-related information */}
       <p>
-        Welcome back! You have placed <strong>{user.orderCount}</strong>{" "}
-        {user.orderCount === 1 ? "order" : "orders"}.
+        {/* Welcome back! You have placed <strong>{userdetails.orderCount}</strong>{" "}
+        {userdetails.orderCount === 1 ? "order" : "orders"}. */}
       </p>
       <div className="myorders">
         <div className="orders-section">
           <div id="orders-list">
+            {/* {console.log(orders)} */}
             {orders && orders.length > 0 ? (
-              orders.map((order) => (
-                <div key={order.id} className="order-card">
-                  <h3>Order #{order.id}</h3>
+              orders.map((order, index) => (
+                <div key={order.orderId + index} className="order-card">
+                  <h3>Order #{order.orderId}</h3>
                   <p className="order-details">
-                    <strong>Date:</strong> {formatDateTime(order.date)}
+                    <strong>Date:</strong> {formatDateTime(order.createdAt)}
                   </p>
                   <p className="order-details">
-                    <strong>Total Amount:</strong> ₹{order.amount}
+                    <strong>Total Amount:</strong> ₹{order.totalAmount}
                   </p>
                   <div className="order-items">
                     {order.items.map((item, index) => (
                       <div key={index} className="order-item">
                         <img src={item.img || ProductImage} alt={item.name} />
                         <span>
-                          {item.name} - ₹{item.dprice} (x{item.quantity})
+                          {item.productName} - ₹{item.price}
                         </span>
                       </div>
                     ))}
@@ -169,9 +173,9 @@ const MyOrders = () => {
                       order.status !== "Order Cancelled" && (
                         <button
                           className="track-btn"
-                          onClick={() => trackOrder(order.id)}
+                          onClick={() => trackOrder(order.orderId)}
                         >
-                          {expandedOrders[order.id]
+                          {expandedOrders[order.orderId]
                             ? "Hide Track Order"
                             : "Track Order"}
                         </button>

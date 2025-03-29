@@ -4,6 +4,13 @@ import { useNavigate } from "react-router-dom";
 import "../style/checkout.css";
 import "../style/cart.css";
 import { OrderContext } from "../contexts/OrderContext";
+import { db } from "../../configs";
+import {
+  addressTable,
+  orderItemsTable,
+  ordersTable,
+} from "../../configs/schema";
+import { UserContext } from "../contexts/UserContext";
 
 // -------------------------------------------------------------------
 // Helper Function: formatAddress
@@ -11,7 +18,9 @@ import { OrderContext } from "../contexts/OrderContext";
 // -------------------------------------------------------------------
 const formatAddress = (address) => {
   if (!address) return "";
-  return `${address.name} - ${address.address}, ${address.city}, ${address.state}, ${address.country} (${address.pincode})${
+  return `${address.name} - ${address.address}, ${address.city}, ${
+    address.state
+  }, ${address.country} (${address.pincode})${
     address.phone ? " - Phone: " + address.phone : ""
   }`;
 };
@@ -41,7 +50,9 @@ function AddressSelection({
           <div
             key={index}
             className={`address-item ${
-              selectedAddress && selectedAddress.pincode === addr.pincode ? "active" : ""
+              selectedAddress && selectedAddress.pincode === addr.pincode
+                ? "active"
+                : ""
             }`}
           >
             <span
@@ -61,10 +72,16 @@ function AddressSelection({
               {formatAddress(addr)}
             </span>
             <div className="address-actions">
-              <button onClick={() => handleEditAddress(index)} className="btn btn-link edit-button">
+              <button
+                onClick={() => handleEditAddress(index)}
+                className="btn btn-link edit-button"
+              >
                 Edit
               </button>
-              <button onClick={() => handleDeleteAddress(index)} className="btn btn-link delete-button">
+              <button
+                onClick={() => handleDeleteAddress(index)}
+                className="btn btn-link delete-button"
+              >
                 Delete
               </button>
             </div>
@@ -78,21 +95,33 @@ function AddressSelection({
             key={field}
             type="text"
             name={field}
-            placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+            placeholder={
+              field.charAt(0).toUpperCase() + field.slice(1) == "Name"
+                ? "local Address"
+                : field.charAt(0).toUpperCase() + field.slice(1)
+            }
             value={newAddress[field]}
             onFocus={() => setSelectedAddress(null)}
-            onChange={(e) => setNewAddress({ ...newAddress, [field]: e.target.value })}
+            onChange={(e) =>
+              setNewAddress({ ...newAddress, [field]: e.target.value })
+            }
             onBlur={field === "pincode" ? handlePincodeBlur : null}
             className="form-control"
           />
         ))}
         <div className="address-form-actions">
           {editingIndex !== null ? (
-            <button onClick={handleSaveAddress} className="btn btn-outline-primary">
+            <button
+              onClick={handleSaveAddress}
+              className="btn btn-outline-primary"
+            >
               Update Address
             </button>
           ) : (
-            <button onClick={handleSaveAddress} className="btn btn-outline-primary">
+            <button
+              onClick={handleSaveAddress}
+              className="btn btn-outline-primary"
+            >
               Save Address
             </button>
           )}
@@ -134,7 +163,7 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
         {selectedItems.length > 0 ? (
           selectedItems.map((item, index) => (
             <div key={index} className="selected-product">
-              <img src={item.img} alt={item.name} />
+              <img src={item.imageurl} alt={item.name} />
               <div className="product-title-quantity">
                 <h3>{item.name}</h3>
                 <span>{item.size} ml</span>
@@ -151,7 +180,11 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
       </div>
       <div className="price-breakdown">
         <p>
-          <span>Products ({selectedItems.reduce((acc, item) => acc + (item.quantity || 1), 0)} items):</span>
+          <span>
+            Products (
+            {selectedItems.reduce((acc, item) => acc + (item.quantity || 1), 0)}{" "}
+            items):
+          </span>
           <span>₹{productTotal}</span>
         </p>
         <p>
@@ -258,9 +291,10 @@ function PaymentDetails({
         >
           <span>Payment Section</span>
           <span>
-
-          <span className="payment-total-price"><strong>Total Price:</strong> ₹{totalPrice}</span>
-          <span className="toggle-icon">{summaryExpanded ? "▲" : "▼"}</span>
+            <span className="payment-total-price">
+              <strong>Total Price:</strong> ₹{totalPrice}
+            </span>
+            <span className="toggle-icon">{summaryExpanded ? "▲" : "▼"}</span>
           </span>
         </div>
         {summaryExpanded && (
@@ -290,7 +324,10 @@ function PaymentDetails({
               name="paymentMethod"
               value={method}
               checked={paymentMethod === method}
-              onChange={(e) => setPaymentMethod(e.target.value)}
+              onChange={(e) => {
+                setPaymentMethod(e.target.value);
+                console.log(e.target.value);
+              }}
             />
             {method}
           </label>
@@ -323,14 +360,20 @@ function PaymentDetails({
                   onChange={(e) => setUpiId(e.target.value)}
                   className="form-control"
                 />
-                <button onClick={handleUpiVerification} className="btn btn-outline-primary">
+                <button
+                  onClick={handleUpiVerification}
+                  className="btn btn-outline-primary"
+                >
                   Verify
                 </button>
                 {upiError && <p className="text-danger">{upiError}</p>}
               </div>
             )}
             {!paymentVerified ? (
-              <button onClick={handlePayNow} className="btn btn-success pay-now-btn">
+              <button
+                onClick={handlePayNow}
+                className="btn btn-success pay-now-btn"
+              >
                 Pay Now
               </button>
             ) : (
@@ -365,7 +408,10 @@ function PaymentDetails({
               />
             </div>
             {!paymentVerified ? (
-              <button onClick={handlePayNow} className="btn btn-success pay-now-btn">
+              <button
+                onClick={handlePayNow}
+                className="btn btn-success pay-now-btn"
+              >
                 Pay Now
               </button>
             ) : (
@@ -418,10 +464,7 @@ export default function Checkout() {
   const [step, setStep] = useState(1);
   // Address-related state
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [addresses, setAddresses] = useState([
-    { name: "Home", phone: "1234567890", address: "123 Street", city: "City", pincode: "123456", state: "State", country: "Country" },
-    { name: "Office", phone: "9876543210", address: "456 Avenue", city: "City", pincode: "654321", state: "State", country: "Country" },
-  ]);
+  const [addresses, setAddresses] = useState([]);
   const [newAddress, setNewAddress] = useState({
     name: "",
     phone: "",
@@ -432,7 +475,15 @@ export default function Checkout() {
     country: "",
   });
   const [editingIndex, setEditingIndex] = useState(null);
-  const addressFieldsOrder = ["name", "phone", "address", "pincode", "city", "state", "country"];
+  const addressFieldsOrder = [
+    "name",
+    "phone",
+    "address",
+    "pincode",
+    "city",
+    "state",
+    "country",
+  ];
   // Retrieve selected items from localStorage
   const [selectedItems, setSelectedItems] = useState([]);
   useEffect(() => {
@@ -442,8 +493,14 @@ export default function Checkout() {
     }
   }, []);
   const deliveryCharge = 50;
-  const originalTotal = selectedItems.reduce((acc, item) => acc + item.oprice * (item.quantity || 1), 0);
-  const productTotal = selectedItems.reduce((acc, item) => acc + item.dprice * (item.quantity || 1), 0);
+  const originalTotal = selectedItems.reduce(
+    (acc, item) => acc + item.oprice * (item.quantity || 1),
+    0
+  );
+  const productTotal = selectedItems.reduce(
+    (acc, item) => acc + item.dprice * (item.quantity || 1),
+    0
+  );
   const discountCalculated = originalTotal - productTotal;
   const totalPrice = productTotal + deliveryCharge;
   // Payment-related state
@@ -452,7 +509,8 @@ export default function Checkout() {
   const [verifiedUpi, setVerifiedUpi] = useState(false);
   const [selectedUpiApp, setSelectedUpiApp] = useState("PhonePe");
   const [paymentVerified, setPaymentVerified] = useState(false);
-
+  const [loading, setLoading] = useState(false);
+  const { userdetails } = useContext(UserContext);
   // Handler: Validate pincode and auto-fill address fields (simulate fetch)
   const handlePincodeBlur = () => {
     const { pincode } = newAddress;
@@ -460,7 +518,11 @@ export default function Checkout() {
       alert("Pincode must be 6 digits.");
       return;
     }
-    const fetchedData = { city: "Sample City", state: "Sample State", country: "Sample Country" };
+    const fetchedData = {
+      city: "Sample City",
+      state: "Sample State",
+      country: "Sample Country",
+    };
     setNewAddress((prev) => ({
       ...prev,
       city: fetchedData.city,
@@ -485,7 +547,15 @@ export default function Checkout() {
       setAddresses([...addresses, newAddress]);
       setSelectedAddress(newAddress);
     }
-    setNewAddress({ name: "", phone: "", address: "", city: "", pincode: "", state: "", country: "" });
+    setNewAddress({
+      name: "",
+      phone: "",
+      address: "",
+      city: "",
+      pincode: "",
+      state: "",
+      country: "",
+    });
   };
 
   // Handler: Edit an existing address
@@ -498,17 +568,66 @@ export default function Checkout() {
   const handleDeleteAddress = (index) => {
     const updatedAddresses = addresses.filter((_, i) => i !== index);
     setAddresses(updatedAddresses);
-    if (selectedAddress && addresses[index].pincode === selectedAddress.pincode) {
+    if (
+      selectedAddress &&
+      addresses[index].pincode === selectedAddress.pincode
+    ) {
       setSelectedAddress(null);
     }
   };
 
+  const createorder = async (newOrder, selectedAddress) => {
+    try {
+      setLoading(true);
+      const now = new Date();
+      const res = await db
+        .insert(ordersTable)
+        .values({
+          totalAmount: newOrder?.amount,
+          userId: userdetails?.id,
+          createdAt: now.toString(),
+          paymentMode: paymentMethod,
+        })
+        .returning({
+          id: ordersTable.id,
+          totalAmount: ordersTable.totalAmount,
+          createdAt: ordersTable.createdAt,
+        });
+      const res1 = await db
+        .insert(addressTable)
+        .values({
+          userId: userdetails.id,
+          city: selectedAddress.city,
+          country: selectedAddress.country,
+          postalCode: selectedAddress?.pincode,
+          state: selectedAddress.state,
+          street: selectedAddress.address,
+        })
+        .returning(addressTable);
+
+      const orderItemsData = selectedItems.map((item) => ({
+        orderId: res[0].id,
+        productId: item.id,
+        quantity: item.quantity,
+        price: item.dprice,
+        totalPrice: item.dprice * item.quantity, // Assuming dprice is the discounted price
+      }));
+
+      await db.insert(orderItemsTable).values(orderItemsData);
+
+      setLoading(false);
+      setStep(4);
+    } catch (error) {
+      console.log(error);
+    }
+  };
   // Handler: Place Order - create order and move to confirmation
   const handlePlaceOrder = () => {
     if (selectedItems.length === 0) {
       alert("No items selected for the order.");
       return;
     }
+
     const newOrder = {
       id: Date.now(),
       date: new Date().toISOString().split("T")[0],
@@ -517,9 +636,11 @@ export default function Checkout() {
       progressStep: 1,
       items: selectedItems,
     };
+    // console.log(selectedItems);
+    createorder(newOrder, selectedAddress);
+
     setOrders((prevOrders) => [...prevOrders, newOrder]);
     localStorage.removeItem("selectedItems");
-    setStep(4);
   };
 
   // Navigation handlers for checkout steps
@@ -527,7 +648,15 @@ export default function Checkout() {
     if (step === 1 && !selectedAddress) {
       if (newAddress.name && newAddress.address && newAddress.pincode) {
         setSelectedAddress(newAddress);
-        setNewAddress({ name: "", phone: "", address: "", city: "", pincode: "", state: "", country: "" });
+        setNewAddress({
+          name: "",
+          phone: "",
+          address: "",
+          city: "",
+          pincode: "",
+          state: "",
+          country: "",
+        });
       } else {
         alert("Please select or enter a valid address.");
         return;
@@ -551,12 +680,17 @@ export default function Checkout() {
       <div className="checkout-header">
         <h1>Checkout</h1>
         <div className="progress-indicator">
-          {["Address", "Order Summary", "Payment", "Confirmation"].map((label, idx) => (
-            <div key={idx} className={`progress-step ${step >= idx + 1 ? "active" : ""}`}>
-              <span>{idx + 1}</span>
-              <p>{label}</p>
-            </div>
-          ))}
+          {["Address", "Order Summary", "Payment", "Confirmation"].map(
+            (label, idx) => (
+              <div
+                key={idx}
+                className={`progress-step ${step >= idx + 1 ? "active" : ""}`}
+              >
+                <span>{idx + 1}</span>
+                <p>{label}</p>
+              </div>
+            )
+          )}
         </div>
       </div>
       <div className="checkout-body">
@@ -608,8 +742,12 @@ export default function Checkout() {
               Back
             </button>
             {step === 3 ? (
-              <button onClick={handlePlaceOrder} className="btn btn-primary" disabled={!paymentVerified}>
-                Place Order
+              <button
+                onClick={handlePlaceOrder}
+                className="btn btn-primary"
+                disabled={!paymentVerified}
+              >
+                {loading ? "placing order" : "place ordered"}
               </button>
             ) : (
               <button onClick={handleNext} className="btn btn-primary">

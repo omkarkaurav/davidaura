@@ -1,0 +1,69 @@
+import { pgTable, serial, text, integer, uuid, varchar, PgSerial, timestamp } from 'drizzle-orm/pg-core';
+
+export const usersTable = pgTable('users', {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  phone: text('phone').notNull(),
+  email: text('email').default(null),
+  role: text('role').default('user'),
+
+});
+
+
+export const productsTable = pgTable('products', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  composition: varchar('composition', { length: 255 }).notNull(),
+  description: varchar('description', { length: 255 }).notNull(),
+  fragrance: varchar('fragrance', { length: 255 }).notNull(),
+  fragranceNotes: varchar('fragranceNotes', { length: 255 }).notNull(),
+ 
+  quantity: integer('quantity').notNull().default(1),
+  discount: integer('discount').notNull(),
+  oprice: integer('oprice').notNull(),
+  size: integer('size').notNull(),
+  imageurl: varchar('imageurl', { length: 500 }).notNull(),
+});
+
+export const addToCartTable = pgTable('add_to_cart', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => usersTable.id),
+  productId: uuid('product_id').notNull().references(() => productsTable.id),
+  quantity: integer('quantity').notNull().default(1),
+  addedAt: text('added_at').default('now()'),
+});
+
+
+export const ordersTable = pgTable('orders', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => usersTable.id),
+  totalAmount: integer('total_amount').notNull(),
+  status: text('status').default('order placed'),
+  progressStep:text('progressStep').default('0'),
+  paymentMode:text('payment_mode').notNull(),
+  createdAt:  text('created_at').notNull(),
+  updatedAt:  text('updated_at').default('now()'),
+});
+
+export const addressTable = pgTable('address', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => usersTable.id),
+  street: text('street').notNull(),
+  city: text('city').notNull(),
+  state: text('state').notNull(),
+  postalCode: text('postal_code').notNull(),
+  country: text('country').notNull(),
+  createdAt: text('created_at').default('now()'),
+  updatedAt: text('updated_at').default('now()'),
+});
+
+export const orderItemsTable = pgTable('order_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orderId: uuid('order_id').notNull().references(() => ordersTable.id),
+  productId: uuid('product_id').notNull().references(() => productsTable.id),
+  quantity: integer('quantity').notNull().default(1),
+  price: integer('price').notNull(), // Price per unit at purchase time
+  totalPrice: integer('total_price').notNull(), // quantity * price
+});
+
+

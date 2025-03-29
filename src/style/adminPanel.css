@@ -15,6 +15,67 @@
 .admin-panel input::placeholder {
   color: black;
 }
+.modal-overlay-chamkila {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content-badshah {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  position: relative;
+}
+
+.close-btn-tata {
+  position: absolute;
+  top: 14px;
+  right: 15px;
+  border: none;
+  background: none;
+  color: black;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.view-details-btn-dhamaal {
+  margin-top: 10px;
+  padding: 5px 10px;
+  border: none;
+  background: #007bff;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.view-details-btn-dhamaal:hover {
+  background: #0056b3;
+}
+
+.step-jugaadu {
+  display: inline-block;
+  padding: 10px;
+  border-radius: 5px;
+  margin: 5px;
+}
+
+.completed-paisaVasool {
+  background: green;
+  color: white;
+}
+
+.current-dhansu {
+  background: orange;
+  color: white;
+}
 
 /* Admin panel main heading */
 .admin-panel h1 {
@@ -453,7 +514,7 @@
   .admin-panel {
     padding: 15px;
   }
-  
+
   .admin-nav button {
     padding: 8px 16px;
     margin: 0 5px;
@@ -466,13 +527,13 @@
   .admin-panel {
     padding: 10px;
   }
-  
+
   .admin-table th,
   .admin-table td {
     padding: 10px;
     font-size: 0.9rem;
   }
-  
+
   .order-search input,
   .user-search input,
   .query-search input {
@@ -487,12 +548,12 @@
     flex-direction: column;
     align-items: center;
   }
-  
+
   .admin-nav button {
     margin: 5px 0;
     width: 100%;
   }
-  
+
   .admin-table,
   .order-card-admin,
   .queries-tab,
@@ -507,19 +568,19 @@
   .admin-panel {
     padding: 5px;
   }
-  
+
   .admin-nav button {
     padding: 6px 10px;
     font-size: 0.8rem;
   }
-  
+
   .order-search input,
   .user-search input,
   .query-search input {
     width: 180px;
     font-size: 0.8rem;
   }
-  
+
   .admin-table th,
   .admin-table td {
     padding: 8px;

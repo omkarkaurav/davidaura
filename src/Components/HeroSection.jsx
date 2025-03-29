@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import InstagramIcon from "../assets/instagram-2016-logo-svgrepo-com.svg";
 import FacebookIcon from "../assets/icons8-facebook-logo (1).svg";
 import TwitterIcon from "../assets/icons8-x (1).svg";
@@ -6,8 +6,10 @@ import RIghtArrowIcon from "../assets/right-arrow-svgrepo-com.svg";
 import BottleImage from "../assets/images/bottle-perfume-isolated-white-background_977935-10892-removebg-preview (1).png";
 
 import "../style/style.css";
+import ImageUploadModal from "./ImageUploadModal";
 
 const HeroSection = () => {
+  const [open, setOpen] = useState();
   return (
     <section id="home-section" className="section-1">
       <div className="hero-container ">
@@ -20,6 +22,7 @@ const HeroSection = () => {
         <div className="bottle-image">
           <img className="bottle-img" src={BottleImage} alt="" />
         </div>
+
         <div className="hero-bottom">
           <div className="shop-btn">
             <button

@@ -17,7 +17,9 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
   // -------------------------------
   const handleCheckout = () => {
     if (cart.length === 0) {
-      alert("Your cart is empty. Please add at least one item before checking out.");
+      alert(
+        "Your cart is empty. Please add at least one item before checking out."
+      );
       return;
     }
     // Save entire cart in localStorage for the checkout page
@@ -57,7 +59,11 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
       const itemToMove = prevCart[index];
       if (!itemToMove) return prevCart;
       setWishlist((prevWishlist) => {
-        if (prevWishlist.some((wishlistItem) => wishlistItem.name === itemToMove.name)) {
+        if (
+          prevWishlist.some(
+            (wishlistItem) => wishlistItem.name === itemToMove.name
+          )
+        ) {
           return prevWishlist;
         }
         return [...prevWishlist, itemToMove];
@@ -69,7 +75,9 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
   function updateQuantity(index, change) {
     setCart((prevCart) =>
       prevCart.map((item, i) =>
-        i === index ? { ...item, quantity: Math.max(1, item.quantity + change) } : item
+        i === index
+          ? { ...item, quantity: Math.max(1, item.quantity + change) }
+          : item
       )
     );
   }
@@ -86,9 +94,15 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
   // Price Calculation Variables
   // -------------------------------
   // Total using original prices
-  const totalOriginal = cart.reduce((acc, item) => acc + item.oprice * item.quantity, 0);
+  const totalOriginal = cart.reduce(
+    (acc, item) => acc + item.oprice * item.quantity,
+    0
+  );
   // Total using discounted prices
-  const totalDiscounted = cart.reduce((acc, item) => acc + item.dprice * item.quantity, 0);
+  const totalDiscounted = cart.reduce(
+    (acc, item) => acc + item.dprice * item.quantity,
+    0
+  );
   // Final price (no coupon discount applied)
   const finalPrice = totalDiscounted;
 
@@ -97,7 +111,9 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
   // -------------------------------
   const renderRemainingProducts = () => {
     return products
-      .filter((product) => !cart.some((cartItem) => cartItem.name === product.name))
+      .filter(
+        (product) => !cart.some((cartItem) => cartItem.name === product.name)
+      )
       .map((product) => {
         const discountedPrice = Math.trunc(
           product.oprice - (product.oprice * product.discount) / 100
@@ -146,17 +162,23 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
             {cart.map((item, index) => (
               <div key={index} className="cart-item">
                 {/* Removed the checkbox element */}
-                <img src={item.img} alt={item.name} />
+                <img src={item.imageurl} alt={item.name} />
                 <div className="product-title">
                   <h3>{item.name}</h3>
                   <span>{item.size} ml</span>
                 </div>
                 <div className="quantity-controls">
-                  <button className="decrease" onClick={() => updateQuantity(index, -1)}>
+                  <button
+                    className="decrease"
+                    onClick={() => updateQuantity(index, -1)}
+                  >
                     -
                   </button>
                   <span className="item-quantity">{item.quantity}</span>
-                  <button className="increase" onClick={() => updateQuantity(index, 1)}>
+                  <button
+                    className="increase"
+                    onClick={() => updateQuantity(index, 1)}
+                  >
                     +
                   </button>
                 </div>
@@ -171,10 +193,16 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
                     ₹{item.oprice}
                   </span>
                 </div>
-                <button className="remove" onClick={() => removeFromCart(index)}>
+                <button
+                  className="remove"
+                  onClick={() => removeFromCart(index)}
+                >
                   Remove
                 </button>
-                <button className="move-to-wishlist" onClick={() => moveToWishlist(index)}>
+                <button
+                  className="move-to-wishlist"
+                  onClick={() => moveToWishlist(index)}
+                >
                   Move to Wishlist
                 </button>
               </div>

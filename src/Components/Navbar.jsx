@@ -18,27 +18,29 @@ import WishlistIcon from "../assets/wishlist-svgrepo-com.svg";
 // CSS Import
 // ------------------------------------------------------------------
 import "../style/navbar.css";
+import { UserButton, useUser } from "@clerk/clerk-react";
 
 /**
  * Navbar Component
  * Renders the main navigation bar with logo, links, and user icons.
  * Includes mobile sidebar toggle and dynamic hide/show based on scroll.
- * 
+ *
  * Props:
  * - cartCount (number): Count of items in cart.
  * - wishlistCount (number): Count of items in wishlist.
  */
 const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const navigate = useNavigate();
-  
+  const { isSignedIn } = useUser();
   // Temporary authentication flag; replace with real auth logic.
-  const isLoggedIn = false;
+  const isLoggedIn = isSignedIn;
 
   // State to control the sidebar open/close for mobile view.
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // State to control navbar visibility (hide on scroll down, show on scroll up).
   const [navbarVisible, setNavbarVisible] = useState(true);
+  const { user } = useUser();
 
   // ------------------------------------------------------------------
   // Event Handlers
@@ -65,7 +67,8 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   useEffect(() => {
     let lastScrollTop = 0;
     const handleScroll = () => {
-      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+      const currentScroll =
+        window.pageYOffset || document.documentElement.scrollTop;
       if (currentScroll > lastScrollTop) {
         // Scrolling down: hide navbar.
         setNavbarVisible(false);
@@ -102,9 +105,34 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
         {/* ------------------ Part 2: Navigation Links ------------------ */}
         <div className="part-2">
           <ul className="nav-links">
-            <li> <a onClick={() => navigate("/")}>Home </a></li>
-            <li> <a onClick={() => document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' })}>Collection</a> </li>
-            <li> <a onClick={() => document.getElementById('shop-section').scrollIntoView({ behavior: 'smooth' })}>Shop</a> </li>
+            <li>
+              {" "}
+              <a onClick={() => navigate("/")}>Home </a>
+            </li>
+            <li>
+              {" "}
+              <a
+                onClick={() =>
+                  document
+                    .getElementById("products-section")
+                    .scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                Collection
+              </a>{" "}
+            </li>
+            <li>
+              {" "}
+              <a
+                onClick={() =>
+                  document
+                    .getElementById("shop-section")
+                    .scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                Shop
+              </a>{" "}
+            </li>
           </ul>
         </div>
 
@@ -115,8 +143,14 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
             <div className="wishlist-icon">
               <a onClick={() => navigate("/wishlist")}>
                 <button id="wishlist-icon">
-                  <img className="wishlist-img" src={WishlistIcon} alt="wishlist" />
-                  <span id="wishlist-count">{wishlistCount >= 0 ? wishlistCount : 0}</span>
+                  <img
+                    className="wishlist-img"
+                    src={WishlistIcon}
+                    alt="wishlist"
+                  />
+                  <span id="wishlist-count">
+                    {wishlistCount >= 0 ? wishlistCount : 0}
+                  </span>
                 </button>
               </a>
             </div>
@@ -131,18 +165,25 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
             </div>
             {/* Login/SignUp or Profile (Placeholder) */}
             {isLoggedIn ? (
-              <div className="profile-icon" id="profile-btn" style={{ display: "none" }}>
-                <button id="profileButton">
-                  <img src="/assets/user-avatar-svgrepo-com.svg" alt="Profile" />
-                </button>
-              </div>
+              // <div
+              //   className="profile-icon"
+              //   id="profile-btn"
+              //   style={{ display: "none" }}
+              // >
+              //   <button id="profileButton">
+              //     <img
+              //       src="/assets/user-avatar-svgrepo-com.svg"
+              //       alt="Profile"
+              //     />
+              //   </button>
+              // </div>
+              <UserButton />
             ) : (
               <div id="loginSignupButtons">
-              <button id="loginButton" onClick={() => navigate("/login")}>
-                <span className="btn-text">Login / SignUp</span>
-              </button>
-            </div>
-            
+                <button id="loginButton" onClick={() => navigate("/login")}>
+                  <span className="btn-text">Login / SignUp</span>
+                </button>
+              </div>
             )}
 
             {/* Profile Dropdown Content (Hidden by default) */}
@@ -178,23 +219,37 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
               <div className="mobile-view">
                 <div className="menu-icon" onClick={toggleSidebar}>
                   <div className="menu-container">
-                    <div className={`hamburger ${isOpen ? "active" : ""}`} id="hamburger">
+                    <div
+                      className={`hamburger ${isOpen ? "active" : ""}`}
+                      id="hamburger"
+                    >
                       <div className="line"></div>
                       <div className="line"></div>
                       <div className="line"></div>
                     </div>
                   </div>
-                  <div className={`sidebar ${isOpen ? "open" : ""}`} id="sidebar">
+                  <div
+                    className={`sidebar ${isOpen ? "open" : ""}`}
+                    id="sidebar"
+                  >
                     <div className="profile-info">
-                      <img src={UserIcon} alt="User Image" className="mob-profile-img" id="mob-profile-img" />
+                      <img
+                        src={UserIcon}
+                        alt="User Image"
+                        className="mob-profile-img"
+                        id="mob-profile-img"
+                      />
                       <div className="user-data">
-                        <h3 id="mob-profile-name">Omkar Kaurav</h3>
+                        <h3 id="mob-profile-name">{user?.fullName}</h3>
                         <p id="mob-profile-email">john.doe@example.com</p>
                       </div>
                       {!isLoggedIn && (
                         <div id="loginSignupButtons-2">
                           <button id="loginButton">
-                            <a id="login-signup" onClick={() => navigate("/login")}>
+                            <a
+                              id="login-signup"
+                              onClick={() => navigate("/login")}
+                            >
                               Login / Sign Up
                             </a>
                           </button>
@@ -222,8 +277,13 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                           <a>Contact Us</a>
                         </li>
                         {isLoggedIn && (
-                          <li className="logout" id="logout-2" onClick={() => navigate("/")}>
-                            <a id="logout-btn-2">Log Out</a> <img src={LogOutIcon} alt="" />
+                          <li
+                            className="logout"
+                            id="logout-2"
+                            onClick={() => navigate("/")}
+                          >
+                            <a id="logout-btn-2">Log Out</a>{" "}
+                            <img src={LogOutIcon} alt="" />
                           </li>
                         )}
                       </ul>
@@ -232,7 +292,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                 </div>
               </div>
             </div>
-            
+
             {/* End Mobile Sidebar */}
           </div>
         </div>

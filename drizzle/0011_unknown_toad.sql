@@ -1,0 +1,1 @@
+ALTER TABLE "add_to_cart" DROP COLUMN "quantity";

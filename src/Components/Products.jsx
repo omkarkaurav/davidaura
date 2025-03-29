@@ -6,14 +6,18 @@ import WishlistImage from "../assets/wishlist-svgrepo-com.svg"; // Default wishl
 import WishlistFilledImage from "../assets/wishlist-svgrepo-com copy.svg"; // Filled wishlist icon
 import CartImage from "../assets/cart-svgrepo-com copy.svg"; // Cart icon
 import { useLocation } from "react-router-dom";
+import { db } from "../../configs";
+import { addToCartTable, usersTable } from "../../configs/schema";
+import { useUser } from "@clerk/clerk-react";
+import { eq } from "drizzle-orm";
 
 // -------------------------------
 // Modal Component (Detailed Perfume Info)
 // -------------------------------
 const Modal = ({ product, onClose }) => {
   const [animate, setAnimate] = useState(false);
+  const [loading, setLoading] = useState(false);
   const location = useLocation();
-
 
   useEffect(() => {
     setAnimate(true);
@@ -29,7 +33,6 @@ const Modal = ({ product, onClose }) => {
       return () => clearTimeout(timeoutId);
     }
   }, [location]);
-  
 
   return (
     <div
@@ -175,7 +178,10 @@ const Modal = ({ product, onClose }) => {
 // -------------------------------
 const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
   // Start with a doubled list for initial smoothness.
-  const [carouselItems, setCarouselItems] = useState([...products, ...products]);
+  const [carouselItems, setCarouselItems] = useState([
+    ...products,
+    ...products,
+  ]);
   const N = products.length; // Original list count
   // "shift" increases continuously (in units of slides).
   const [shift, setShift] = useState(0);
@@ -192,7 +198,12 @@ const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
 
   // Calculate dynamic spacing:
   // For devices ≤480px, use a multiplier of 0.74; otherwise, 0.22.
-  const spacing = windowWidth <= 480 ? windowWidth * 0.54 : windowWidth <= 780 ? windowWidth * 0.40 : windowWidth * 0.22;
+  const spacing =
+    windowWidth <= 480
+      ? windowWidth * 0.54
+      : windowWidth <= 780
+      ? windowWidth * 0.4
+      : windowWidth * 0.22;
 
   // Every 3 seconds, increase the shift by 1 slide if not paused.
   useEffect(() => {
@@ -224,14 +235,14 @@ const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
     // Set slide dimensions based on screen width
     const slideWidth = windowWidth <= 480 ? 200 : 300;
     const slideHeight = windowWidth <= 480 ? "65%" : "90%";
-  
-    const offset = (index - center) - shift;
+
+    const offset = index - center - shift;
     const baseScale = 0.8;
     const scale = Math.abs(offset) < 0.001 ? 1 : baseScale;
     const rotateY = offset * -45;
     const translateX = offset * spacing;
     const zIndex = Math.abs(offset) < 0.001 ? 2 : 1;
-  
+
     return {
       transform: `translateX(${translateX}px) translateY(-50%) scale(${scale}) rotateY(${rotateY}deg)`,
       transition: animate ? "transform 1s ease" : "none",
@@ -245,7 +256,6 @@ const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
       cursor: "pointer",
     };
   };
-  
 
   // Set container width to 100% if screen width is below 480px, otherwise 85%
   const containerWidth = windowWidth <= 480 ? "100%" : "85%";
@@ -289,7 +299,7 @@ const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
 const Products = ({ cart, setCart, wishlist, setWishlist }) => {
   const { products } = useContext(ProductContext);
   const [modalProduct, setModalProduct] = useState(null);
-
+  const { user } = useUser();
   // Prevent background scrolling when modal is open.
   useEffect(() => {
     if (modalProduct) {
@@ -301,6 +311,22 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
     }
   }, [modalProduct]);
 
+  const addtocart = async (product) => {
+    try {
+      const res = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.phone, user?.primaryPhoneNumber?.phoneNumber));
+
+      const res1 = await db.insert(addToCartTable).values({
+        productId: product.id,
+        userId: res[0].id,
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const toggleCart = (product) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.name === product.name);
@@ -310,7 +336,11 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
         const discountedPrice = Math.trunc(
           product.oprice - (product.oprice * product.discount) / 100
         );
-        return [...prevCart, { ...product, dprice: discountedPrice, quantity: 1 }];
+
+        return [
+          ...prevCart,
+          { ...product, dprice: discountedPrice, quantity: 1 },
+        ];
       }
     });
   };
@@ -333,7 +363,9 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
 
   return (
     <section className="py-20 mt-50 flex flex-col items-center">
-      <h1 id="products-section" className="product-heading">Our Collection</h1>
+      <h1 id="products-section" className="product-heading">
+        Our Collection
+      </h1>
 
       {/* Custom 3D Coverflow Carousel Section */}
       <div className="w-9/10 flex items-center justify-center py-10  ">
@@ -344,7 +376,9 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
         />
       </div>
 
-      <h1 id="shop-section" className="product-heading">Shop The Luxury</h1>
+      <h1 id="shop-section" className="product-heading">
+        Shop The Luxury
+      </h1>
 
       {/* Products Container */}
       <div className="w-full flex flex-wrap justify-center gap-8 px-6">
@@ -353,7 +387,9 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
             product.oprice - (product.oprice * product.discount) / 100
           );
           const inCart = cart.some((item) => item.name === product.name);
-          const inWishlist = wishlist.some((item) => item.name === product.name);
+          const inWishlist = wishlist.some(
+            (item) => item.name === product.name
+          );
 
           return (
             <div
@@ -362,7 +398,7 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
             >
               <img
                 className="w-72 h-64 object-cover"
-                src={product.img}
+                src={product.imageurl}
                 alt={product.name}
                 onClick={() => handleSlideClick(product)}
                 style={{ cursor: "pointer" }}
@@ -379,14 +415,22 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
               </button>
               <div className="w-9/10 flex justify-between items-center">
                 <h3 className="text-lg font-semibold">{product.name}</h3>
-                <span className="text-gray-700 font-medium">{product.size} ml</span>
+                <span className="text-gray-700 font-medium">
+                  {product.size} ml
+                </span>
               </div>
               <div className="w-9/10 flex justify-between items-center">
                 <span className="flex justify-between gap-4 items-center">
-                  <span className="text-lg font-bold text-black">₹{discountedPrice}</span>
-                  <span className="text-sm text-gray-400 line-through">(₹{product.oprice})</span>
+                  <span className="text-lg font-bold text-black">
+                    ₹{discountedPrice}
+                  </span>
+                  <span className="text-sm text-gray-400 line-through">
+                    (₹{product.oprice})
+                  </span>
                 </span>
-                <span className="text-blue-700 font-semibold">{product.discount}% Off</span>
+                <span className="text-blue-700 font-semibold">
+                  {product.discount}% Off
+                </span>
               </div>
               <button
                 onClick={() => toggleCart(product)}
