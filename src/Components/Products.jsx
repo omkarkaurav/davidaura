@@ -10,6 +10,7 @@ import { db } from "../../configs";
 import { addToCartTable, usersTable } from "../../configs/schema";
 import { useUser } from "@clerk/clerk-react";
 import { eq } from "drizzle-orm";
+import { UserContext } from "../contexts/UserContext";
 
 // -------------------------------
 // Modal Component (Detailed Perfume Info)
@@ -177,6 +178,7 @@ const Modal = ({ product, onClose }) => {
 // Custom 3D Coverflow Carousel with Infinite One‑Direction Loop (Append at Third Index)
 // -------------------------------
 const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
+  // console.log(products);
   // Start with a doubled list for initial smoothness.
   const [carouselItems, setCarouselItems] = useState([
     ...products,
@@ -299,8 +301,10 @@ const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
 const Products = ({ cart, setCart, wishlist, setWishlist }) => {
   const { products } = useContext(ProductContext);
   const [modalProduct, setModalProduct] = useState(null);
-  const { user } = useUser();
+  // const { user } = useUser();
+  const { setCartitem } = useContext(UserContext);
   // Prevent background scrolling when modal is open.
+
   useEffect(() => {
     if (modalProduct) {
       document.body.style.overflow = "hidden";
@@ -311,17 +315,19 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
     }
   }, [modalProduct]);
 
+  const { userdetails } = useContext(UserContext);
+
   const addtocart = async (product) => {
     try {
-      const res = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.phone, user?.primaryPhoneNumber?.phoneNumber));
-
       const res1 = await db.insert(addToCartTable).values({
         productId: product.id,
-        userId: res[0].id,
+        userId: userdetails?.id,
       });
+      setCartitem((pre) => [...pre, product]);
+      // const res = await db
+      //   .update(usersTable)
+      //   .set({ cartlength: cartitem?.length + 1 })
+      //   .where(eq(usersTable.id, userdetails.id));
     } catch (error) {
       console.log(error);
     }
@@ -433,7 +439,10 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
                 </span>
               </div>
               <button
-                onClick={() => toggleCart(product)}
+                onClick={() => {
+                  addtocart(product);
+                  toggleCart(product);
+                }}
                 className={`w-full py-2 text-lg font-semibold flex items-center justify-center gap-2 transition ${
                   inCart ? "bg-black text-white" : "bg-black text-white"
                 }`}

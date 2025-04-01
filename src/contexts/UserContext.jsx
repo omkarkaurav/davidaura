@@ -6,6 +6,8 @@ import {
   ordersTable,
   usersTable,
   productsTable,
+  addressTable,
+  addToCartTable,
 } from "../../configs/schema";
 import { eq } from "drizzle-orm";
 // import { object } from "framer-motion/client";
@@ -16,6 +18,8 @@ export const UserContext = createContext();
 // Create a provider component
 export const UserProvider = ({ children }) => {
   const [userdetails, setUserdetails] = useState();
+  const [userAddress, setUserAddress] = useState([]);
+  const [cartitem, setCartitem] = useState([]);
   const [orders, setOrders] = useState([]);
   const { user } = useUser();
 
@@ -46,6 +50,8 @@ export const UserProvider = ({ children }) => {
           orderId: ordersTable.id,
           totalAmount: ordersTable.totalAmount,
           status: ordersTable.status,
+          paymentMode: ordersTable.paymentMode,
+          paymentStatus: ordersTable.paymentStatus,
           createdAt: ordersTable.createdAt,
           productId: orderItemsTable.productId,
           quantity: orderItemsTable.quantity,
@@ -70,6 +76,8 @@ export const UserProvider = ({ children }) => {
             totalAmount: item.totalAmount,
             status: item.status,
             createdAt: item.createdAt,
+            paymentStatus: item.paymentStatus,
+            paymentMode: item.paymentMode,
             items: [], // Store products inside each order
           };
         }
@@ -79,6 +87,8 @@ export const UserProvider = ({ children }) => {
           productImage: item.productImage,
           quantity: item.quantity,
           price: item.price,
+          paymentStatus: item.paymentStatus,
+          paymentMode: item.paymentMode,
         });
         return acc;
       }, {});
@@ -92,6 +102,37 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const getaddress = async () => {
+    try {
+      const res = await db
+        .select()
+        .from(addressTable)
+        .where(eq(addressTable.userId, userdetails?.id));
+      console.log(res);
+      setUserAddress(res);
+    } catch (error) {}
+  };
+
+  const getCartitems = async () => {
+    try {
+      const res = await db
+        .select({
+          product: productsTable,
+          userId: addToCartTable.userId,
+          cartId: addToCartTable.id,
+        })
+        .from(addToCartTable)
+        .innerJoin(
+          productsTable,
+          eq(addToCartTable.productId, productsTable.id)
+        )
+        .where(eq(addToCartTable.userId, userdetails.id));
+      setCartitem(res);
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
   // Fetch user details when user changes
   useEffect(() => {
     if (user) getuserdetail();
@@ -99,11 +140,24 @@ export const UserProvider = ({ children }) => {
 
   // Fetch orders when userdetails is available
   useEffect(() => {
-    if (userdetails) getMyOrders();
+    if (userdetails) {
+      getMyOrders();
+      getaddress();
+      getCartitems();
+    }
   }, [userdetails]);
 
   return (
-    <UserContext.Provider value={{ userdetails, setUserdetails, orders }}>
+    <UserContext.Provider
+      value={{
+        userdetails,
+        setUserdetails,
+        orders,
+        userAddress,
+        cartitem,
+        setCartitem,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

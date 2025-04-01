@@ -27,6 +27,8 @@ export const OrderProvider = ({ children }) => {
           phone: usersTable.phone,
           paymentMode: ordersTable.paymentMode,
           totalAmount: ordersTable.totalAmount,
+          paymentStatus: ordersTable.paymentStatus,
+          trasactionId: ordersTable.transactionId,
           status: ordersTable.status,
           progressStep: ordersTable.progressStep,
           createdAt: ordersTable.createdAt,

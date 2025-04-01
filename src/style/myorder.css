@@ -1,294 +1,288 @@
 .myorder-container {
-    display: flex;
-    width: 100%;
-    min-height: 100vh;
-    flex-direction: column;
-    align-items: center;
-    padding: 0px 30px;
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  padding: 0px 30px;
 }
 
 .my-order-title {
-    margin-top: 80px;
-    font-weight: bolder;
-    font-size: 32px;
-    width: fit-content;
-    text-align: center;
-    position: relative;
-    margin-bottom: 20px;
+  margin-top: 80px;
+  font-weight: bolder;
+  font-size: 32px;
+  width: fit-content;
+  text-align: center;
+  position: relative;
+  margin-bottom: 20px;
 }
 
 .my-order-title::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0px;
-    transform: translateX(-50%);
-    width: 0;
-    height: 3px; /* Adjust the thickness of the underline */
-    background-color: currentColor; /* Matches the text color */
-    transition: width 0.3s ease-in-out;
-  }
-  
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0px;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px; /* Adjust the thickness of the underline */
+  background-color: currentColor; /* Matches the text color */
+  transition: width 0.3s ease-in-out;
+}
+
 .my-order-title:hover::after {
-    width: 100%;
-  }
+  width: 100%;
+}
 
 .myorders {
-    display: flex;
-    width: 100%;
-    min-height: 70vh;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
+  display: flex;
+  width: 100%;
+  min-height: 70vh;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
 }
 
 .orders-section {
-    flex: 3;
-    background: white;
-    padding: 15px;
-    border-radius: 10px;    
-    box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  flex: 3;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
 }
 
 .suggestions-section {
-    flex: 1;
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  flex: 1;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
 }
 
-.title, .subtitle {
-    font-size: 24px;
-    margin-bottom: 15px;
-    color: #333;
+.title,
+.subtitle {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: #333;
 }
 
 .order-card {
-    border: 1px solid #ddd;
-    padding: 15px;
-    border-radius: 8px;
-    background: white;
-    margin-bottom: 15px;
-    box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 8px;
+  background: white;
+  margin-bottom: 15px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
 }
 
 .order-card h3 {
-    font-size: 18px;
-    margin-bottom: 5px;
+  font-size: 18px;
+  margin-bottom: 5px;
 }
 
 .order-details {
-    font-size: 14px;
-    color: #555;
+  font-size: 14px;
+  color: #555;
 }
 
 .order-items {
-    margin-top: 10px;
+  margin-top: 10px;
 }
 
 .order-item {
-    margin-top: 10px;
-    display: flex;
-    align-items: center;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
 }
 
 .order-items img {
-    width: 50px;
-    height: 50px;
-    border-radius: 5px;
-    margin-right: 10px;
-    margin-bottom: 5px;
+  width: 50px;
+  height: 50px;
+  border-radius: 5px;
+  margin-right: 10px;
+  margin-bottom: 5px;
 }
 
 .buttons {
-    margin-top: 10px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap; 
-    justify-content: center;
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 button {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    color: white;
-    font-weight: bold;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  color: white;
+  font-weight: bold;
 }
 
 .track-btn {
-    background: white;
-    color: black;
-    border: 1px solid black;
+  background: white;
+  color: black;
+  border: 1px solid black;
 }
 
 .cancel-btn {
-    background: white;
-    color: black;
-    border: 1px solid black;
+  background: white;
+  color: black;
+  border: 1px solid black;
 }
 .cancelled-btn {
-    background: white;
-    color: black;
-    border: 1px solid black;
+  background: white;
+  color: black;
+  border: 1px solid black;
 }
 .cancellation-btn {
-    background: white;
-    color: black;
-    border: 1px solid black;
+  background: white;
+  color: black;
+  border: 1px solid black;
 }
 .reorder-btn {
-    background: white;
-    color: black;
-    border: 1px solid black;
+  background: white;
+  color: black;
+  border: 1px solid black;
 }
-
-
+.jhaatu_item {
+  padding: 5px;
+}
 .tracking-status {
-    margin-top: 10px;
-    padding: 10px;
-    border-radius: 5px;
-    background: #f0f0f0;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 5px;
 }
 
-.order-progress{
-    margin-top: 30px;
+.order-progress {
+  margin-top: 30px;
 }
 
 /* Progress steps */
 .progress-steps {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    /* flex-wrap: wrap; */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  /* flex-wrap: wrap; */
 }
 
-
-
 .myorder-step {
-    flex-direction: column;
-    display: flex;
-    height: 80px;
-    gap: 20px;
-    justify-items: center;
-    align-items: center;
-    align-content: center;
-    position: relative;
+  flex-direction: column;
+  display: flex;
+  height: 80px;
+  gap: 20px;
+  justify-items: center;
+  align-items: center;
+  align-content: center;
+  position: relative;
 }
 
 .step-number {
-    width: 30px; 
-    height: 30px;
-    background-color: #ccc;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    border-radius: 50%;
-    font-size: 16px;
-    font-weight: bold;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+  width: 30px;
+  height: 30px;
+  background-color: #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-
 .myorder-step.completed .step-number {
-    background-color: #4caf50;
-    color: white;
+  background-color: #4caf50;
+  color: white;
 }
 
 .myorder-step.current .step-number {
-    background-color: white;
-    border: 2px solid black;
-    color: black;
+  background-color: white;
+  border: 2px solid black;
+  color: black;
 }
 
 .step-label {
-    font-size: 14px;
-    color: #333;
-    margin-left: 5px;
+  font-size: 14px;
+  color: #333;
+  margin-left: 5px;
 }
 
 /* Responsive Styles */
 @media (max-width: 768px) {
-    .myorder-container {
-        padding: 0px 20px;
-    }
+  .myorder-container {
+    padding: 0px 20px;
+  }
 
-    .myorders {
-        flex-direction: column;
-        gap: 15px;
-    }
+  .myorders {
+    flex-direction: column;
+    gap: 15px;
+  }
 
-    .orders-section,
-    .suggestions-section {
-        flex: 1;
-    }
+  .orders-section,
+  .suggestions-section {
+    flex: 1;
+  }
 
-    .order-card {
-        padding: 12px;
-        font-size: 14px;
-    }
+  .order-card {
+    padding: 12px;
+    font-size: 14px;
+  }
 
-    .suggested-product img {
-        width: 70%;
-    }
+  .suggested-product img {
+    width: 70%;
+  }
 
-   
+  .step-wrapper {
+    justify-content: center;
+  }
 
-    .step-wrapper {
-        justify-content: center;
-    }
+  .step-number {
+    width: 25px;
+    height: 25px;
+    font-size: 14px;
+  }
 
-    .step-number {
-        width: 25px;
-        height: 25px;
-        font-size: 14px;
-    }
-
-    .step-label {
-        font-size: 12px;
-    }
+  .step-label {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 480px) {
-    .myorder-container {
-        padding: 0px 15px;
-    }
+  .myorder-container {
+    padding: 0px 15px;
+  }
 
-    .myorders {
-        flex-direction: column;
-        gap: 10px;
-    }
+  .myorders {
+    flex-direction: column;
+    gap: 10px;
+  }
 
-    .orders-section,
-    .suggestions-section {
-        flex: 1;
-    }
+  .orders-section,
+  .suggestions-section {
+    flex: 1;
+  }
 
-    .title {
-        font-size: 26px;
-        margin-top: 40px;
-    }
+  .title {
+    font-size: 26px;
+    margin-top: 40px;
+  }
 
-    .order-card {
-        padding: 10px;
-        font-size: 12px;
-    }
+  .order-card {
+    padding: 10px;
+    font-size: 12px;
+  }
 
-    
+  .step-number {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
 
-    .step-number {
-        width: 20px;
-        height: 20px;
-        font-size: 12px;
-    }
-
-    .step-label {
-        font-size: 10px;
-    }
+  .step-label {
+    font-size: 10px;
+  }
 }

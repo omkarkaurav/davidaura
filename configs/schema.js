@@ -6,6 +6,7 @@ export const usersTable = pgTable('users', {
   phone: text('phone').notNull(),
   email: text('email').default(null),
   role: text('role').default('user'),
+  cartlength:integer("cart_length").default(0),
 
 });
 
@@ -41,6 +42,9 @@ export const ordersTable = pgTable('orders', {
   status: text('status').default('order placed'),
   progressStep:text('progressStep').default('0'),
   paymentMode:text('payment_mode').notNull(),
+  transactionId:text('transaction_id').default("null"),
+  paymentStatus: text("payment_status").default("pending"), 
+  
   createdAt:  text('created_at').notNull(),
   updatedAt:  text('updated_at').default('now()'),
 });

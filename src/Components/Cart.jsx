@@ -1,17 +1,29 @@
 // src/Components/ShoppingCart.js
 
-import React, { useState, useRef, useEffect, useContext } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useContext,
+  useLayoutEffect,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import "../style/cart.css";
 import BottleImage from "../assets/images/bottle-perfume-isolated-white-background_977935-10892-removebg-preview (1).png";
 import { ProductContext } from "../contexts/productContext"; // Global product state
 import { UserContext } from "../contexts/UserContext"; // New User Context
+import { db } from "../../configs";
+import { addToCartTable } from "../../configs/schema";
+import { eq } from "drizzle-orm";
 
 const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
   const navigate = useNavigate();
   const { products } = useContext(ProductContext); // Retrieve global products
-  const { user } = useContext(UserContext); // Access user data (e.g., orderCount)
+  const { userdetails, cartitem, setCartitem } = useContext(UserContext); // Access user data (e.g., orderCount)
 
+  useLayoutEffect(() => {
+    setCart(cartitem);
+  }, [cartitem]);
   // -------------------------------
   // Checkout Handler
   // -------------------------------
@@ -26,7 +38,9 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
     localStorage.setItem("selectedItems", JSON.stringify(cart));
     navigate("/checkout");
   };
-
+  useEffect(() => {
+    setCart(cartitem);
+  }, [cartitem]);
   // -------------------------------
   // Cart Management Functions
   // -------------------------------
@@ -86,7 +100,13 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
     setCart((prevCart) => prevCart.filter((_, i) => i !== index));
   };
 
-  const clearCart = () => {
+  const clearCart = async () => {
+    try {
+      const res = await db
+        .delete(addToCartTable)
+        .where(eq(userdetails.id, addToCartTable.userId));
+      setCartitem([]);
+    } catch (error) {}
     setCart([]);
   };
 
@@ -95,12 +115,16 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
   // -------------------------------
   // Total using original prices
   const totalOriginal = cart.reduce(
-    (acc, item) => acc + item.oprice * item.quantity,
+    (acc, item) => acc + item.product.oprice * item.product.quantity,
     0
   );
   // Total using discounted prices
   const totalDiscounted = cart.reduce(
-    (acc, item) => acc + item.dprice * item.quantity,
+    (acc, item) =>
+      acc +
+      (item.product.oprice -
+        (item.product.oprice * item.product.discount) / 100) *
+        item.product.quantity,
     0
   );
   // Final price (no coupon discount applied)
@@ -120,7 +144,7 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
         );
         return (
           <div key={product.name} className="remaining-product-item">
-            <img src={product.img} alt="Product" />
+            <img src={product.imageurl} alt="Product" />
             <div className="r-product-title">
               <h3>{product.name}</h3>
               <span>{product.size} ml</span>
@@ -159,13 +183,13 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
         <div className="cart-item-summary-container">
           {/* ---------- Cart Items List ---------- */}
           <div className="cart-items-box">
-            {cart.map((item, index) => (
+            {cart?.map((item, index) => (
               <div key={index} className="cart-item">
                 {/* Removed the checkbox element */}
-                <img src={item.imageurl} alt={item.name} />
+                <img src={item.product.imageurl} alt={item.product.name} />
                 <div className="product-title">
-                  <h3>{item.name}</h3>
-                  <span>{item.size} ml</span>
+                  <h3>{item.product.name}</h3>
+                  <span>{item.product.size} ml</span>
                 </div>
                 <div className="quantity-controls">
                   <button
@@ -174,7 +198,7 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
                   >
                     -
                   </button>
-                  <span className="item-quantity">{item.quantity}</span>
+                  <span className="item-quantity">{item.product.quantity}</span>
                   <button
                     className="increase"
                     onClick={() => updateQuantity(index, 1)}
@@ -183,14 +207,18 @@ const ShoppingCart = ({ cart, setCart, wishlist, setWishlist }) => {
                   </button>
                 </div>
                 <div className="item-price">
-                  <span style={{ color: "green" }}>₹{item.dprice}</span>
+                  <span style={{ color: "green" }}>
+                    ₹{" "}
+                    {item.product.oprice -
+                      (item.product.discount / 100) * item.product.oprice}
+                  </span>
                   <span
                     style={{
                       color: "lightgray",
                       textDecoration: "line-through",
                     }}
                   >
-                    ₹{item.oprice}
+                    ₹{item.product.oprice}
                   </span>
                 </div>
                 <button

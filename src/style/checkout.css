@@ -8,6 +8,41 @@
   overflow: hidden;
   box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
 }
+/* Dabba Container */
+.dabba-container {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+/* Kala Safed Dabba (Stylish Input Field) */
+.kalaSafedDabba {
+  width: 300px;
+  padding: 12px 15px;
+  font-size: 16px;
+  border: 2px solid #333;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Placeholder Styling */
+.kalaSafedDabba::placeholder {
+  color: #000000;
+  opacity: 0.8;
+}
+
+/* Focus Effect (Shining like Taare Zameen Par ✨) */
+
+/* Smooth Hover */
+.kalaSafedDabba:hover {
+  border-color: #9c9c9c;
+}
 
 h2 {
   background-color: rgb(255, 255, 255);

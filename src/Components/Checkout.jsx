@@ -11,6 +11,8 @@ import {
   ordersTable,
 } from "../../configs/schema";
 import { UserContext } from "../contexts/UserContext";
+import QRCodeImage from "../assets/example.webp";
+import { ToastContainer, toast } from "react-toastify";
 
 // -------------------------------------------------------------------
 // Helper Function: formatAddress
@@ -20,7 +22,7 @@ const formatAddress = (address) => {
   if (!address) return "";
   return `${address.name} - ${address.address}, ${address.city}, ${
     address.state
-  }, ${address.country} (${address.pincode})${
+  }, ${address.country} (${address.postalCode})${
     address.phone ? " - Phone: " + address.phone : ""
   }`;
 };
@@ -46,11 +48,11 @@ function AddressSelection({
     <div className="address-selection">
       <h2>Select or Add Delivery Address</h2>
       <div className="address-list">
-        {addresses.map((addr, index) => (
+        {addresses?.map((addr, index) => (
           <div
             key={index}
             className={`address-item ${
-              selectedAddress && selectedAddress.pincode === addr.pincode
+              selectedAddress && selectedAddress.postalCode === addr.postalCode
                 ? "active"
                 : ""
             }`}
@@ -63,7 +65,7 @@ function AddressSelection({
                   phone: "",
                   address: "",
                   city: "",
-                  pincode: "",
+                  postalCode: "",
                   state: "",
                   country: "",
                 });
@@ -105,7 +107,7 @@ function AddressSelection({
             onChange={(e) =>
               setNewAddress({ ...newAddress, [field]: e.target.value })
             }
-            onBlur={field === "pincode" ? handlePincodeBlur : null}
+            onBlur={field === "postalCode" ? handlePincodeBlur : null}
             className="form-control"
           />
         ))}
@@ -137,11 +139,17 @@ function AddressSelection({
 // -------------------------------------------------------------------
 function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
   const originalTotal = selectedItems.reduce(
-    (acc, item) => acc + item.oprice * (item.quantity || 1),
+    (acc, item) => acc + Math.floor(item.product.oprice) * (item.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
-    (acc, item) => acc + item.dprice * (item.quantity || 1),
+    (acc, item) =>
+      acc +
+      Math.floor(
+        item.product.oprice -
+          (item.product.oprice * item.product.discount) / 100
+      ) *
+        (item.quantity || 1),
     0
   );
   const discountCalculated = originalTotal - productTotal;
@@ -163,14 +171,18 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
         {selectedItems.length > 0 ? (
           selectedItems.map((item, index) => (
             <div key={index} className="selected-product">
-              <img src={item.imageurl} alt={item.name} />
+              <img src={item.product.imageurl} alt={item.product.name} />
               <div className="product-title-quantity">
-                <h3>{item.name}</h3>
-                <span>{item.size} ml</span>
+                <h3>{item.product.name}</h3>
+                <span>{item.product.size} ml</span>
               </div>
               <div className="item-price-quantity">
-                <span style={{ color: "green" }}>₹{item.dprice}</span>
-                <p>Quantity: {item.quantity || 1}</p>
+                <span style={{ color: "green" }}>
+                  ₹
+                  {item.product.oprice -
+                    (item.product.oprice * item.product.discount) / 100}
+                </span>
+                <p>Quantity: {item.product.quantity || 1}</p>
               </div>
             </div>
           ))
@@ -182,7 +194,10 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
         <p>
           <span>
             Products (
-            {selectedItems.reduce((acc, item) => acc + (item.quantity || 1), 0)}{" "}
+            {selectedItems.reduce(
+              (acc, item) => acc + (item.product.quantity || 1),
+              0
+            )}{" "}
             items):
           </span>
           <span>₹{productTotal}</span>
@@ -225,6 +240,8 @@ function PaymentDetails({
   discountCalculated,
   deliveryCharge,
   totalPrice,
+  transactionId,
+  setTransactionId,
 }) {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [expiry, setExpiry] = useState("");
@@ -369,19 +386,32 @@ function PaymentDetails({
                 {upiError && <p className="text-danger">{upiError}</p>}
               </div>
             )}
-            {!paymentVerified ? (
-              <button
-                onClick={handlePayNow}
-                className="btn btn-success pay-now-btn"
-              >
-                Pay Now
-              </button>
+            <img src={QRCodeImage} className="  w-40 h-40" />
+            <div class="dabba-container">
+              <label className="   text-start">Enter Your Transaction Id</label>
+              <input
+                type="text"
+                id="likhYaha"
+                value={transactionId}
+                onChange={(e) => setTransactionId(e.target.value)}
+                class="kalaSafedDabba"
+                placeholder="Enter Transaction Id after payment"
+              />
+            </div>
+
+            {/* {!paymentVerified ? (
+              // <button
+              //   onClick={handlePayNow}
+              //   className="btn btn-success pay-now-btn"
+              // >
+              //   Pay Now
+              // </button>
             ) : (
               <p>Payment Verified</p>
-            )}
+            )} */}
           </div>
         )}
-        {paymentMethod === "Debit Card" && (
+        {/* {paymentMethod === "Debit Card" && (
           <div className="debit-card-payment-content">
             <h3>Enter Card Details</h3>
             <input
@@ -418,7 +448,7 @@ function PaymentDetails({
               <p>Payment Verified</p>
             )}
           </div>
-        )}
+        )} */}
         {paymentMethod === "Cash on Delivery" && (
           <div className="cod-payment-content">
             <p>
@@ -460,6 +490,7 @@ function Confirmation({ resetCheckout }) {
 export default function Checkout() {
   const navigate = useNavigate();
   const { orders, setOrders } = useContext(OrderContext);
+  const { userAddress } = useContext(UserContext);
   // Step 1: Address, 2: Order Summary, 3: Payment, 4: Confirmation
   const [step, setStep] = useState(1);
   // Address-related state
@@ -470,7 +501,7 @@ export default function Checkout() {
     phone: "",
     address: "",
     city: "",
-    pincode: "",
+    postalCode: "",
     state: "",
     country: "",
   });
@@ -479,7 +510,7 @@ export default function Checkout() {
     "name",
     "phone",
     "address",
-    "pincode",
+    "postalCode",
     "city",
     "state",
     "country",
@@ -487,6 +518,7 @@ export default function Checkout() {
   // Retrieve selected items from localStorage
   const [selectedItems, setSelectedItems] = useState([]);
   useEffect(() => {
+    // setAddresses(userAddress);
     const items = localStorage.getItem("selectedItems");
     if (items) {
       setSelectedItems(JSON.parse(items));
@@ -494,15 +526,19 @@ export default function Checkout() {
   }, []);
   const deliveryCharge = 50;
   const originalTotal = selectedItems.reduce(
-    (acc, item) => acc + item.oprice * (item.quantity || 1),
+    (acc, item) => acc + item.product.oprice * (item.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
-    (acc, item) => acc + item.dprice * (item.quantity || 1),
+    (acc, item) =>
+      acc +
+      (item.product.oprice -
+        (item.product.discount / 100) * item.product.oprice) *
+        (item.quantity || 1),
     0
   );
   const discountCalculated = originalTotal - productTotal;
-  const totalPrice = productTotal + deliveryCharge;
+  const totalPrice = Math.floor(productTotal + deliveryCharge);
   // Payment-related state
   const [paymentMethod, setPaymentMethod] = useState("UPI");
   const [upiId, setUpiId] = useState("");
@@ -511,10 +547,11 @@ export default function Checkout() {
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [loading, setLoading] = useState(false);
   const { userdetails } = useContext(UserContext);
-  // Handler: Validate pincode and auto-fill address fields (simulate fetch)
+  const [transactionId, setTransactionId] = useState("");
+  // Handler: Validate postalCode and auto-fill address fields (simulate fetch)
   const handlePincodeBlur = () => {
-    const { pincode } = newAddress;
-    if (pincode.length !== 6) {
+    const { postalCode } = newAddress;
+    if (postalCode.length !== 6) {
       alert("Pincode must be 6 digits.");
       return;
     }
@@ -552,7 +589,7 @@ export default function Checkout() {
       phone: "",
       address: "",
       city: "",
-      pincode: "",
+      postalCode: "",
       state: "",
       country: "",
     });
@@ -570,13 +607,17 @@ export default function Checkout() {
     setAddresses(updatedAddresses);
     if (
       selectedAddress &&
-      addresses[index].pincode === selectedAddress.pincode
+      addresses[index].postalCode === selectedAddress.postalCode
     ) {
       setSelectedAddress(null);
     }
   };
 
   const createorder = async (newOrder, selectedAddress) => {
+    if (paymentMethod == "UPI" && transactionId.length < 12) {
+      toast.error("Please Fill the TransactionId");
+      return;
+    }
     try {
       setLoading(true);
       const now = new Date();
@@ -587,6 +628,7 @@ export default function Checkout() {
           userId: userdetails?.id,
           createdAt: now.toString(),
           paymentMode: paymentMethod,
+          transactionId: transactionId,
         })
         .returning({
           id: ordersTable.id,
@@ -599,7 +641,7 @@ export default function Checkout() {
           userId: userdetails.id,
           city: selectedAddress.city,
           country: selectedAddress.country,
-          postalCode: selectedAddress?.pincode,
+          postalCode: selectedAddress?.postalCode,
           state: selectedAddress.state,
           street: selectedAddress.address,
         })
@@ -607,15 +649,23 @@ export default function Checkout() {
 
       const orderItemsData = selectedItems.map((item) => ({
         orderId: res[0].id,
-        productId: item.id,
-        quantity: item.quantity,
-        price: item.dprice,
-        totalPrice: item.dprice * item.quantity, // Assuming dprice is the discounted price
+        productId: item.product.id,
+        quantity: item.product.quantity,
+        price: Math.floor(
+          item.product.oprice -
+            (item.product.discount / 100) * item.product.oprice
+        ),
+        totalPrice:
+          Math.floor(
+            item.product.oprice -
+              (item.product.discount / 100) * item.product.oprice
+          ) * item.product.quantity, // Assuming dprice is the discounted price
       }));
 
       await db.insert(orderItemsTable).values(orderItemsData);
-
+      toast.success("order Placed");
       setLoading(false);
+
       setStep(4);
     } catch (error) {
       console.log(error);
@@ -646,14 +696,14 @@ export default function Checkout() {
   // Navigation handlers for checkout steps
   const handleNext = () => {
     if (step === 1 && !selectedAddress) {
-      if (newAddress.name && newAddress.address && newAddress.pincode) {
+      if (newAddress.name && newAddress.address && newAddress.postalCode) {
         setSelectedAddress(newAddress);
         setNewAddress({
           name: "",
           phone: "",
           address: "",
           city: "",
-          pincode: "",
+          postalCode: "",
           state: "",
           country: "",
         });
@@ -678,6 +728,9 @@ export default function Checkout() {
   return (
     <div className="checkout-wrapper">
       <div className="checkout-header">
+        <div className="  absolute  top-2">
+          <ToastContainer />
+        </div>
         <h1>Checkout</h1>
         <div className="progress-indicator">
           {["Address", "Order Summary", "Payment", "Confirmation"].map(
@@ -718,6 +771,8 @@ export default function Checkout() {
         )}
         {step === 3 && (
           <PaymentDetails
+            transactionId={transactionId}
+            setTransactionId={setTransactionId}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
             upiId={upiId}
@@ -747,7 +802,7 @@ export default function Checkout() {
                 className="btn btn-primary"
                 disabled={!paymentVerified}
               >
-                {loading ? "placing order" : "place ordered"}
+                {loading ? "placing order....." : "place ordered"}
               </button>
             ) : (
               <button onClick={handleNext} className="btn btn-primary">

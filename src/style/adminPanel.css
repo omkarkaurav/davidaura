@@ -34,6 +34,100 @@
   width: 400px;
   position: relative;
 }
+.paid-status {
+  background-color: #28a745; /* Bright Green */
+  color: white;
+  padding: 8px;
+  font-weight: bold;
+  border-radius: 5px;
+  margin-top: 10px;
+  display: inline-block;
+}
+.progress-container-chamkila {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 20px;
+  position: relative;
+}
+
+.step-wrapper-biryani {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.step-line-maggi {
+  width: 50px;
+  height: 5px;
+  transition: background 0.3s ease-in-out;
+}
+
+.step-samosa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.step-number-lassi {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Completed step (Lit Green) */
+.completed-pizza .step-number-lassi {
+  background: linear-gradient(135deg, #22c55e, #15803d);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+}
+
+/* Current Step (Yellow Pulse Effect) */
+.current-burger .step-number-lassi {
+  background: #facc15;
+  box-shadow: 0 0 15px rgba(250, 204, 21, 0.9);
+  animation: pulse-animation 1.5s infinite;
+}
+
+/* Pulse effect for the current step */
+@keyframes pulse-animation {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.9);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(250, 204, 21, 0.8);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.9);
+  }
+}
+
+/* Default (Upcoming Steps) */
+.step-number-lassi {
+  background: #d4d4d4;
+  color: black;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Step labels */
+.step-label-paniPuri {
+  margin-top: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #374151;
+}
 
 .close-btn-tata {
   position: absolute;

@@ -1,6 +1,6 @@
 // src/Components/Navbar.js
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 
 // ------------------------------------------------------------------
@@ -19,6 +19,7 @@ import WishlistIcon from "../assets/wishlist-svgrepo-com.svg";
 // ------------------------------------------------------------------
 import "../style/navbar.css";
 import { UserButton, useUser } from "@clerk/clerk-react";
+import { UserContext } from "../contexts/UserContext";
 
 /**
  * Navbar Component
@@ -45,7 +46,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   // ------------------------------------------------------------------
   // Event Handlers
   // ------------------------------------------------------------------
-
+  const { cartitem } = useContext(UserContext);
   // Toggle the mobile sidebar.
   const toggleSidebar = (e) => {
     e.preventDefault();
@@ -159,7 +160,12 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
               <a onClick={() => navigate("/cart")}>
                 <button id="cart-icon">
                   <img src={CartIcon} alt="Cart" />
-                  <span id="cart-count">{cartCount >= 0 ? cartCount : 0}</span>
+                  <span
+                    id="cart-count"
+                    className={` ${!cartitem.length && "  animate-pulse"}`}
+                  >
+                    {cartitem.length >= 0 ? cartitem.length : ""}
+                  </span>
                 </button>
               </a>
             </div>

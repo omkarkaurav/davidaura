@@ -150,7 +150,18 @@ const MyOrders = () => {
             {orders && orders.length > 0 ? (
               orders.map((order, index) => (
                 <div key={order.orderId + index} className="order-card">
-                  <h3>Order #{order.orderId}</h3>
+                  <div className="   flex justify-between p-5  font-semibold ">
+                    <h3>Order #{order.orderId}</h3>
+                    <label
+                      className={` jhaatu_item text-black  border-2 border-white rounded-xl p-5   ${
+                        order.paymentStatus == "paid"
+                          ? "bg-green-500"
+                          : "bg-yellow-400"
+                      }`}
+                    >
+                      {order.paymentStatus}
+                    </label>
+                  </div>
                   <p className="order-details">
                     <strong>Date:</strong> {formatDateTime(order.createdAt)}
                   </p>
@@ -222,8 +233,16 @@ const MyOrders = () => {
                     )}
                   {/* Always display the current order status */}
                   {order.status && (
-                    <div className="tracking-status">
-                      <strong>Status:</strong> {order.status}
+                    <div
+                      className={`tracking-status  flex justify-between items-center bg-zinc-100`}
+                    >
+                      <span>
+                        <strong>Status:</strong> {order.status}
+                      </span>
+                      <span>
+                        <strong>PaymentMode: </strong>
+                        {order.paymentMode}
+                      </span>
                     </div>
                   )}
                 </div>

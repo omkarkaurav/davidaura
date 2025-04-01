@@ -14,6 +14,8 @@ import { eq } from "drizzle-orm";
 import { useNavigate } from "react-router-dom";
 import { ordersTable, productsTable, usersTable } from "../../configs/schema";
 import ImageUploadModal from "./ImageUploadModal";
+import { UserContext } from "../contexts/UserContext";
+import { toast, ToastContainer } from "react-toastify";
 
 // Dummy data for coupons (if not using global state for coupons)
 const dummyCoupons = [
@@ -40,6 +42,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   // Get orders from OrderContext
   const { orders, setOrders } = useContext(OrderContext);
+  // const {userdetails}=useContext(UserContext)
 
   // Get queries from ContactContext
   const { queries } = useContext(ContactContext);
@@ -90,8 +93,11 @@ const AdminPanel = () => {
         })
         .returning(productsTable);
       // console.log(res);
+      toast.success("Product added Successfully");
     } catch (error) {
-      console.log(error);
+      // console.log(error);
+      const { message } = error;
+      toast.error(message);
     }
 
     console.log(updatedProduct);
@@ -198,6 +204,9 @@ const AdminPanel = () => {
   };
   return (
     <div className="admin-panel">
+      <div className=" absolute">
+        <ToastContainer />
+      </div>
       <h1>Admin Panel</h1>
       <nav className="admin-nav">
         <button onClick={() => setActiveTab("products")}>Products</button>
@@ -719,26 +728,34 @@ const AdminPanel = () => {
                           ];
                           return (
                             <div className="progress-steps ">
-                              {steps.map((step, index) => (
-                                <div key={index} className="step-wrapper">
-                                  <div
-                                    className={`step ${
-                                      order.progressStep > index
-                                        ? "completed"
-                                        : " "
-                                    } ${
-                                      order.progressStep === index + 1
-                                        ? "current"
-                                        : ""
-                                    }`}
-                                  >
-                                    <div className="step-number">
-                                      {index + 1}
+                              {}
+                              {steps.map((step, index) => {
+                                const isCompleted =
+                                  order.progressStep > index - 1;
+                                const isCurrent =
+                                  order.progressStep === index + 1;
+
+                                return (
+                                  <div key={index} className="step-wrapper">
+                                    <div
+                                      className={`step-samosa ${
+                                        isCompleted ? "completed-pizza" : ""
+                                      } ${isCurrent ? "current-burger" : ""}`}
+                                    >
+                                      <div
+                                        className={`step-number-lassi  ${
+                                          order.progressStep > index
+                                            ? " bg-green-300 text-white"
+                                            : ""
+                                        } `}
+                                      >
+                                        {index + 1}
+                                      </div>
+                                      <div className="step-label">{step}</div>
                                     </div>
-                                    <div className="step-label">{step}</div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           );
                         })()}
@@ -860,10 +877,31 @@ const AdminPanel = () => {
 export default AdminPanel;
 
 const OrderDetailsPopup = ({ order, onClose }) => {
+  const [paymentStatus, setPaymentStatus] = useState(order.paymentStatus);
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = async (e) => {
+    const value = e.target.value;
+    setPaymentStatus(value);
+    setLoading(true);
+
+    try {
+      await db
+        .update(ordersTable)
+        .set({ paymentStatus: value })
+        .where(eq(ordersTable.id, order.orderId));
+      console.log("Updated payment status");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="modal-overlay-chamkila">
       <div className="modal-content-badshah">
-        <button className="close-btn-tata" onClick={onClose}>
+        <button disabled={loading} className="close-btn-tata" onClick={onClose}>
           ×
         </button>
         <h2>Order Details (#{order.orderId})</h2>
@@ -873,9 +911,29 @@ const OrderDetailsPopup = ({ order, onClose }) => {
         <p>
           <strong>Phone:</strong> {order.phone}
         </p>
+
         <p>
           <strong>Payment Mode:</strong> {order.paymentMode}
         </p>
+        <p>
+          <strong>Payment Status:</strong>
+          <select value={paymentStatus} onChange={handleChange}>
+            <option value="pending">Pending</option>
+            <option value="failed">Failed</option>
+            <option value="paid">Paid</option>
+          </select>
+        </p>
+
+        {/* Green Highlight for Paid Status */}
+        {paymentStatus === "paid" && (
+          <p className="paid-status">✅ Payment Successful</p>
+        )}
+
+        {!(order.paymentMode == " Cash on Delivery") && (
+          <p>
+            <strong>Transaction Id:</strong> {order.trasactionId}
+          </p>
+        )}
         <p>
           <strong>Total Amount:</strong> ₹{order.totalAmount}
         </p>
