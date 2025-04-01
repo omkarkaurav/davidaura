@@ -944,15 +944,18 @@ const OrderDetailsPopup = ({ order, onClose }) => {
           <strong>Address:</strong> {order.address}, {order.city}, {order.state}
           , {order.zip}, {order.country}
         </p>
-
-        <h3>Products:</h3>
-        <ul>
-          {order.products.map((product) => (
-            <li key={product.productId}>
-              {product.productName} (x{product.quantity}) - ₹{product.price}
-            </li>
-          ))}
-        </ul>
+        <p>
+          <strong>Products:</strong>
+          <ul>
+            {order.products.map((product) => {
+              return (
+                <li key={product.productId}>
+                  {product.productName} (x{product.quantity}) - ₹{product.price}
+                </li>
+              );
+            })}
+          </ul>
+        </p>
       </div>
     </div>
   );

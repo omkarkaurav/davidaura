@@ -8,6 +8,7 @@ import {
   productsTable,
   addressTable,
   addToCartTable,
+  UserAddressTable,
 } from "../../configs/schema";
 import { eq } from "drizzle-orm";
 // import { object } from "framer-motion/client";
@@ -18,8 +19,8 @@ export const UserContext = createContext();
 // Create a provider component
 export const UserProvider = ({ children }) => {
   const [userdetails, setUserdetails] = useState();
-  const [userAddress, setUserAddress] = useState([]);
-  const [cartitem, setCartitem] = useState([]);
+  const [address, setAddress] = useState([]);
+  // const [cartitem, setCartitem] = useState([]);
   const [orders, setOrders] = useState([]);
   const { user } = useUser();
 
@@ -108,27 +109,17 @@ export const UserProvider = ({ children }) => {
         .select()
         .from(addressTable)
         .where(eq(addressTable.userId, userdetails?.id));
-      console.log(res);
-      setUserAddress(res);
+      // console.log(res);
+      // setUserAddress(res);
     } catch (error) {}
   };
-
-  const getCartitems = async () => {
+  const userAddres = async () => {
     try {
       const res = await db
-        .select({
-          product: productsTable,
-          userId: addToCartTable.userId,
-          cartId: addToCartTable.id,
-        })
-        .from(addToCartTable)
-        .innerJoin(
-          productsTable,
-          eq(addToCartTable.productId, productsTable.id)
-        )
-        .where(eq(addToCartTable.userId, userdetails.id));
-      setCartitem(res);
-      console.log(res);
+        .select()
+        .from(UserAddressTable)
+        .where(eq(UserAddressTable.userId, userdetails.id));
+      setAddress(res);
     } catch (error) {
       console.log(error);
     }
@@ -143,7 +134,7 @@ export const UserProvider = ({ children }) => {
     if (userdetails) {
       getMyOrders();
       getaddress();
-      getCartitems();
+      userAddres();
     }
   }, [userdetails]);
 
@@ -153,9 +144,8 @@ export const UserProvider = ({ children }) => {
         userdetails,
         setUserdetails,
         orders,
-        userAddress,
-        cartitem,
-        setCartitem,
+        address,
+        setAddress,
       }}
     >
       {children}

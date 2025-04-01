@@ -7,10 +7,15 @@ import WishlistFilledImage from "../assets/wishlist-svgrepo-com copy.svg"; // Fi
 import CartImage from "../assets/cart-svgrepo-com copy.svg"; // Cart icon
 import { useLocation } from "react-router-dom";
 import { db } from "../../configs";
-import { addToCartTable, usersTable } from "../../configs/schema";
+import {
+  addToCartTable,
+  usersTable,
+  wishlistTable,
+} from "../../configs/schema";
 import { useUser } from "@clerk/clerk-react";
 import { eq } from "drizzle-orm";
 import { UserContext } from "../contexts/UserContext";
+import { CartContext } from "../contexts/CartContext";
 
 // -------------------------------
 // Modal Component (Detailed Perfume Info)
@@ -80,7 +85,7 @@ const Modal = ({ product, onClose }) => {
           &times;
         </button>
         <img
-          src={product.img}
+          src={product.imageurl}
           alt={product.name}
           style={{
             width: "250px",
@@ -177,132 +182,133 @@ const Modal = ({ product, onClose }) => {
 // -------------------------------
 // Custom 3D Coverflow Carousel with Infinite One‑Direction Loop (Append at Third Index)
 // -------------------------------
-const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
-  // console.log(products);
-  // Start with a doubled list for initial smoothness.
-  const [carouselItems, setCarouselItems] = useState([
-    ...products,
-    ...products,
-  ]);
-  const N = products.length; // Original list count
-  // "shift" increases continuously (in units of slides).
-  const [shift, setShift] = useState(0);
-  // "animate" flag controls whether to apply CSS transition.
-  const [animate, setAnimate] = useState(true);
+// const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
+//   // console.log(products);
+//   // Start with a doubled list for initial smoothness.
+//   const [carouselItems, setCarouselItems] = useState([
+//     ...products,
+//     ...products,
+//   ]);
+//   const N = products.length; // Original list count
+//   // "shift" increases continuously (in units of slides).
+//   const [shift, setShift] = useState(0);
+//   // "animate" flag controls whether to apply CSS transition.
+//   const [animate, setAnimate] = useState(true);
 
-  // Track current window width for responsive spacing.
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+//   // Track current window width for responsive spacing.
+//   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+//   useEffect(() => {
+//     const handleResize = () => setWindowWidth(window.innerWidth);
+//     window.addEventListener("resize", handleResize);
+//     return () => window.removeEventListener("resize", handleResize);
+//   }, []);
 
-  // Calculate dynamic spacing:
-  // For devices ≤480px, use a multiplier of 0.74; otherwise, 0.22.
-  const spacing =
-    windowWidth <= 480
-      ? windowWidth * 0.54
-      : windowWidth <= 780
-      ? windowWidth * 0.4
-      : windowWidth * 0.22;
+//   // Calculate dynamic spacing:
+//   // For devices ≤480px, use a multiplier of 0.74; otherwise, 0.22.
+//   const spacing =
+//     windowWidth <= 480
+//       ? windowWidth * 0.54
+//       : windowWidth <= 780
+//       ? windowWidth * 0.4
+//       : windowWidth * 0.22;
 
-  // Every 3 seconds, increase the shift by 1 slide if not paused.
-  useEffect(() => {
-    if (!pause) {
-      const interval = setInterval(() => {
-        setShift((prev) => prev + 1);
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [pause]);
+//   // Every 3 seconds, increase the shift by 1 slide if not paused.
+//   useEffect(() => {
+//     if (!pause) {
+//       const interval = setInterval(() => {
+//         setShift((prev) => prev + 1);
+//       }, 3000);
+//       return () => clearInterval(interval);
+//     }
+//   }, [pause]);
 
-  // When shift reaches 3, append a new copy of the original products and subtract 3.
-  useEffect(() => {
-    if (shift >= 3) {
-      setAnimate(false);
-      setCarouselItems((prev) => [...prev, ...products]);
-      setShift((prev) => prev - 3);
-      setTimeout(() => {
-        setAnimate(true);
-      }, 50);
-    }
-  }, [shift, products]);
+//   // When shift reaches 3, append a new copy of the original products and subtract 3.
+//   useEffect(() => {
+//     if (shift >= 3) {
+//       setAnimate(false);
+//       setCarouselItems((prev) => [...prev, ...products]);
+//       setShift((prev) => prev - 3);
+//       setTimeout(() => {
+//         setAnimate(true);
+//       }, 50);
+//     }
+//   }, [shift, products]);
 
-  // Define the center index as the beginning of the second copy.
-  const center = N;
+//   // Define the center index as the beginning of the second copy.
+//   const center = N;
 
-  // Compute the 3D transform style for each slide.
-  const getSlideStyle = (index) => {
-    // Set slide dimensions based on screen width
-    const slideWidth = windowWidth <= 480 ? 200 : 300;
-    const slideHeight = windowWidth <= 480 ? "65%" : "90%";
+//   // Compute the 3D transform style for each slide.
+//   const getSlideStyle = (index) => {
+//     // Set slide dimensions based on screen width
+//     const slideWidth = windowWidth <= 480 ? 200 : 300;
+//     const slideHeight = windowWidth <= 480 ? "65%" : "90%";
 
-    const offset = index - center - shift;
-    const baseScale = 0.8;
-    const scale = Math.abs(offset) < 0.001 ? 1 : baseScale;
-    const rotateY = offset * -45;
-    const translateX = offset * spacing;
-    const zIndex = Math.abs(offset) < 0.001 ? 2 : 1;
+//     const offset = index - center - shift;
+//     const baseScale = 0.8;
+//     const scale = Math.abs(offset) < 0.001 ? 1 : baseScale;
+//     const rotateY = offset * -45;
+//     const translateX = offset * spacing;
+//     const zIndex = Math.abs(offset) < 0.001 ? 2 : 1;
 
-    return {
-      transform: `translateX(${translateX}px) translateY(-50%) scale(${scale}) rotateY(${rotateY}deg)`,
-      transition: animate ? "transform 1s ease" : "none",
-      position: "absolute",
-      top: "50%",
-      left: "50%",
-      marginLeft: `-${slideWidth / 2}px`, // Centers the slide horizontally based on its width
-      width: `${slideWidth}px`,
-      height: slideHeight,
-      zIndex,
-      cursor: "pointer",
-    };
-  };
+//     return {
+//       transform: `translateX(${translateX}px) translateY(-50%) scale(${scale}) rotateY(${rotateY}deg)`,
+//       transition: animate ? "transform 1s ease" : "none",
+//       position: "absolute",
+//       top: "50%",
+//       left: "50%",
+//       marginLeft: `-${slideWidth / 2}px`, // Centers the slide horizontally based on its width
+//       width: `${slideWidth}px`,
+//       height: slideHeight,
+//       zIndex,
+//       cursor: "pointer",
+//     };
+//   };
 
-  // Set container width to 100% if screen width is below 480px, otherwise 85%
-  const containerWidth = windowWidth <= 480 ? "100%" : "85%";
+//   // Set container width to 100% if screen width is below 480px, otherwise 85%
+//   const containerWidth = windowWidth <= 480 ? "100%" : "85%";
 
-  return (
-    <div
-      style={{
-        position: "relative",
-        width: containerWidth,
-        height: "480px",
-        perspective: "1000px",
-        overflow: "hidden",
-      }}
-    >
-      {carouselItems.map((product, index) => (
-        <div
-          key={product.name + index}
-          style={getSlideStyle(index)}
-          onClick={() => onSlideClick(product)}
-        >
-          <img
-            src={product.img}
-            alt={product.name}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              borderRadius: "42px", // Keep same button radius / image style
-              boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
-            }}
-          />
-        </div>
-      ))}
-    </div>
-  );
-};
+//   return (
+//     <div
+//       style={{
+//         position: "relative",
+//         width: containerWidth,
+//         height: "480px",
+//         perspective: "1000px",
+//         overflow: "hidden",
+//       }}
+//     >
+//       {carouselItems.map((product, index) => (
+//         <div
+//           key={product.name + index}
+//           style={getSlideStyle(index)}
+//           onClick={() => onSlideClick(product)}
+//         >
+//           <img
+//             src={product.imageurl}
+//             alt={product.name}
+//             style={{
+//               width: "100%",
+//               height: "100%",
+//               objectFit: "cover",
+//               borderRadius: "42px", // Keep same button radius / image style
+//               boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+//             }}
+//           />
+//         </div>
+//       ))}
+//     </div>
+//   );
+// };
 
 // -------------------------------
 // Products Component
 // -------------------------------
-const Products = ({ cart, setCart, wishlist, setWishlist }) => {
+const Products = () => {
+  // const [cart, setCart] = useState([]);
   const { products } = useContext(ProductContext);
   const [modalProduct, setModalProduct] = useState(null);
   // const { user } = useUser();
-  const { setCartitem } = useContext(UserContext);
+  const { setCart, cart, wishlist, setWishlist } = useContext(CartContext);
   // Prevent background scrolling when modal is open.
 
   useEffect(() => {
@@ -319,44 +325,115 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
 
   const addtocart = async (product) => {
     try {
-      const res1 = await db.insert(addToCartTable).values({
-        productId: product.id,
-        userId: userdetails?.id,
-      });
-      setCartitem((pre) => [...pre, product]);
-      // const res = await db
-      //   .update(usersTable)
-      //   .set({ cartlength: cartitem?.length + 1 })
-      //   .where(eq(usersTable.id, userdetails.id));
+      const res1 = await db
+        .insert(addToCartTable)
+        .values({
+          productId: product.id,
+          userId: userdetails?.id,
+        })
+        .returning({
+          cartId: addToCartTable.id,
+          userId: addToCartTable.userId,
+        });
+
+      setCart((pre) => [
+        ...pre,
+        { product, cartId: res1.cartId, userId: res1.userId },
+      ]);
     } catch (error) {
       console.log(error);
     }
   };
 
-  const toggleCart = (product) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.name === product.name);
-      if (existingItem) {
-        return prevCart.filter((item) => item.name !== product.name);
-      } else {
-        const discountedPrice = Math.trunc(
-          product.oprice - (product.oprice * product.discount) / 100
+  // const getcartsitem = async () => {
+  //   try {
+  //     const res = await db
+  //       .select({
+  //         product: productsTable,
+  //         userId: addToCartTable.userId,
+  //         cartId: addToCartTable.id,
+  //       })
+  //       .from(addToCartTable)
+  //       .innerJoin(
+  //         productsTable,
+  //         eq(addToCartTable.productId, productsTable.id)
+  //       )
+  //       .where(eq(addToCartTable.userId, userdetails.id));
+  //     setCartitem(res);
+  //     console.log(res);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // };
+
+  // const toggleCart = (product) => {
+  //   console.log(product);
+  //   setCart((prevCart) => {
+  //     const existingItem = prevCart.find((item) => item.name === product.name);
+  //     if (existingItem) {
+  //       return prevCart.filter((item) => item.name !== product.name);
+  //     } else {
+  //       const discountedPrice = Math.trunc(
+  //         product.oprice - (product.oprice * product.discount) / 100
+  //       );
+
+  //       return [
+  //         ...prevCart,
+  //         { ...product, dprice: discountedPrice, quantity: 1 },
+  //       ];
+  //     }
+  //   });
+  // };
+
+  const toggleWishlist = async (product) => {
+    try {
+      // Check if product is already in the wishlist
+      const existingWishlistItem = await db
+        .select()
+        .from(wishlistTable)
+        .where(
+          and(
+            eq(wishlistTable.userId, userdetails?.id),
+            eq(wishlistTable.productId, product.id)
+          )
+        )
+        .limit(1); // We only need one matching entry
+
+      if (existingWishlistItem.length > 0) {
+        // If product exists, remove it from wishlist
+        await db
+          .delete(wishlistTable)
+          .where(
+            and(
+              eq(wishlistTable.userId, userdetails?.id),
+              eq(wishlistTable.productId, product.id)
+            )
+          );
+
+        // Update state by removing the product
+        setWishlist((prevWishlist) =>
+          prevWishlist.filter((item) => item.productId !== product.id)
         );
+      } else {
+        // If product does not exist, add it
+        const res = await db
+          .insert(wishlistTable)
+          .values({
+            userId: userdetails?.id,
+            productId: product.id,
+          })
+          .returning({
+            wishlistId: wishlistTable.id,
+            productId: wishlistTable.productId,
+            userId: wishlistTable.userId,
+          });
 
-        return [
-          ...prevCart,
-          { ...product, dprice: discountedPrice, quantity: 1 },
-        ];
+        // Update state by adding the product
+        setWishlist((prevWishlist) => [...prevWishlist, product]);
       }
-    });
-  };
-
-  const toggleWishlist = (product) => {
-    setWishlist((prevWishlist) =>
-      prevWishlist.some((item) => item.name === product.name)
-        ? prevWishlist.filter((item) => item.name !== product.name)
-        : [...prevWishlist, product]
-    );
+    } catch (error) {
+      console.error("Error toggling wishlist:", error);
+    }
   };
 
   const handleSlideClick = (product) => {
@@ -369,18 +446,18 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
 
   return (
     <section className="py-20 mt-50 flex flex-col items-center">
-      <h1 id="products-section" className="product-heading">
+      {/* <h1 id="products-section" className="product-heading">
         Our Collection
-      </h1>
+      </h1> */}
 
       {/* Custom 3D Coverflow Carousel Section */}
-      <div className="w-9/10 flex items-center justify-center py-10  ">
+      {/* <div className="w-9/10 flex items-center justify-center py-10  ">
         <CoverflowCarousel
           products={products}
           pause={modalProduct !== null}
           onSlideClick={handleSlideClick}
         />
-      </div>
+      </div> */}
 
       <h1 id="shop-section" className="product-heading">
         Shop The Luxury
@@ -394,7 +471,7 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
           );
           const inCart = cart.some((item) => item.name === product.name);
           const inWishlist = wishlist.some(
-            (item) => item.name === product.name
+            (item) => item.productId == product.id
           );
 
           return (
@@ -441,13 +518,12 @@ const Products = ({ cart, setCart, wishlist, setWishlist }) => {
               <button
                 onClick={() => {
                   addtocart(product);
-                  toggleCart(product);
                 }}
                 className={`w-full py-2 text-lg font-semibold flex items-center justify-center gap-2 transition ${
                   inCart ? "bg-black text-white" : "bg-black text-white"
                 }`}
               >
-                {inCart ? "Remove from Cart" : "Add to Cart"}
+                {"Add to Cart"}
                 <img src={CartImage} alt="Cart" className="w-8 h-8" />
               </button>
             </div>

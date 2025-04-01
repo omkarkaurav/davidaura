@@ -20,6 +20,8 @@ import WishlistIcon from "../assets/wishlist-svgrepo-com.svg";
 import "../style/navbar.css";
 import { UserButton, useUser } from "@clerk/clerk-react";
 import { UserContext } from "../contexts/UserContext";
+import { CartContext } from "../contexts/CartContext";
+import { count } from "drizzle-orm";
 
 /**
  * Navbar Component
@@ -30,7 +32,11 @@ import { UserContext } from "../contexts/UserContext";
  * - cartCount (number): Count of items in cart.
  * - wishlistCount (number): Count of items in wishlist.
  */
-const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
+const Navbar = () => {
+  // const [wishlistCount]=useState(0)
+  const { wishlist } = useContext(CartContext);
+  const [cartCount, setCartCount] = useState(0);
+  const { cart } = useContext(CartContext);
   const navigate = useNavigate();
   const { isSignedIn } = useUser();
   // Temporary authentication flag; replace with real auth logic.
@@ -42,11 +48,13 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   // State to control navbar visibility (hide on scroll down, show on scroll up).
   const [navbarVisible, setNavbarVisible] = useState(true);
   const { user } = useUser();
-
+  useEffect(() => {
+    cart && setCartCount(cart.length);
+  }, [cart]);
   // ------------------------------------------------------------------
   // Event Handlers
   // ------------------------------------------------------------------
-  const { cartitem } = useContext(UserContext);
+
   // Toggle the mobile sidebar.
   const toggleSidebar = (e) => {
     e.preventDefault();
@@ -150,7 +158,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                     alt="wishlist"
                   />
                   <span id="wishlist-count">
-                    {wishlistCount >= 0 ? wishlistCount : 0}
+                    {wishlist.length >= 0 ? wishlist.length : 0}
                   </span>
                 </button>
               </a>
@@ -162,9 +170,9 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                   <img src={CartIcon} alt="Cart" />
                   <span
                     id="cart-count"
-                    className={` ${!cartitem.length && "  animate-pulse"}`}
+                    className={` ${!cartCount && "  animate-pulse"}`}
                   >
-                    {cartitem.length >= 0 ? cartitem.length : ""}
+                    {cartCount >= 0 ? cartCount : ""}
                   </span>
                 </button>
               </a>

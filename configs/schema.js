@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, uuid, varchar, PgSerial, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, uuid, varchar, PgSerial, timestamp, unique } from 'drizzle-orm/pg-core';
 
 export const usersTable = pgTable('users', {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -35,6 +35,16 @@ export const addToCartTable = pgTable('add_to_cart', {
 });
 
 
+export const wishlistTable = pgTable("wishlist_table", {
+  id: uuid("id").defaultRandom().primaryKey(), 
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => productsTable.id, { onDelete: "cascade" }),
+})
+
 export const ordersTable = pgTable('orders', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => usersTable.id),
@@ -60,6 +70,19 @@ export const addressTable = pgTable('address', {
   createdAt: text('created_at').default('now()'),
   updatedAt: text('updated_at').default('now()'),
 });
+export const UserAddressTable = pgTable('user_address', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => usersTable.id),
+  name: text('name').notNull(),
+  phone:text("phone").notNull(),
+  city: text('city').notNull(),
+  state: text('state').notNull(),
+  postalCode: text('postal_code').notNull(),
+  country: text('country').notNull(),
+  address:text("address").notNull().default(""),
+
+
+});
 
 export const orderItemsTable = pgTable('order_items', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -69,5 +92,7 @@ export const orderItemsTable = pgTable('order_items', {
   price: integer('price').notNull(), // Price per unit at purchase time
   totalPrice: integer('total_price').notNull(), // quantity * price
 });
+
+
 
 

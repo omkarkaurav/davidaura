@@ -9,10 +9,12 @@ import {
   addressTable,
   orderItemsTable,
   ordersTable,
+  UserAddressTable,
 } from "../../configs/schema";
 import { UserContext } from "../contexts/UserContext";
 import QRCodeImage from "../assets/example.webp";
 import { ToastContainer, toast } from "react-toastify";
+import { CartContext } from "../contexts/CartContext";
 
 // -------------------------------------------------------------------
 // Helper Function: formatAddress
@@ -139,7 +141,8 @@ function AddressSelection({
 // -------------------------------------------------------------------
 function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
   const originalTotal = selectedItems.reduce(
-    (acc, item) => acc + Math.floor(item.product.oprice) * (item.quantity || 1),
+    (acc, item) =>
+      acc + Math.floor(item.product.oprice) * (item.product.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
@@ -149,7 +152,7 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
         item.product.oprice -
           (item.product.oprice * item.product.discount) / 100
       ) *
-        (item.quantity || 1),
+        (item.product.quantity || 1),
     0
   );
   const discountCalculated = originalTotal - productTotal;
@@ -490,7 +493,8 @@ function Confirmation({ resetCheckout }) {
 export default function Checkout() {
   const navigate = useNavigate();
   const { orders, setOrders } = useContext(OrderContext);
-  const { userAddress } = useContext(UserContext);
+  // const { userAddress } = useContext(UserContext);
+  const { setCart } = useContext(CartContext);
   // Step 1: Address, 2: Order Summary, 3: Payment, 4: Confirmation
   const [step, setStep] = useState(1);
   // Address-related state
@@ -526,15 +530,15 @@ export default function Checkout() {
   }, []);
   const deliveryCharge = 50;
   const originalTotal = selectedItems.reduce(
-    (acc, item) => acc + item.product.oprice * (item.quantity || 1),
+    (acc, item) => acc + item?.product?.oprice * item?.product?.quantity,
     0
   );
   const productTotal = selectedItems.reduce(
     (acc, item) =>
       acc +
-      (item.product.oprice -
-        (item.product.discount / 100) * item.product.oprice) *
-        (item.quantity || 1),
+      (item?.product?.oprice -
+        (item?.product?.discount / 100) * item?.product?.oprice) *
+        item?.product?.quantity,
     0
   );
   const discountCalculated = originalTotal - productTotal;
@@ -548,6 +552,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const { userdetails } = useContext(UserContext);
   const [transactionId, setTransactionId] = useState("");
+  const { address } = useContext(UserContext);
   // Handler: Validate postalCode and auto-fill address fields (simulate fetch)
   const handlePincodeBlur = () => {
     const { postalCode } = newAddress;
@@ -567,7 +572,30 @@ export default function Checkout() {
       country: fetchedData.country,
     }));
   };
-
+  useEffect(() => {
+    setAddresses(address);
+  }, [address]);
+  const saveAddressInDb = async (address) => {
+    console.log(address);
+    try {
+      const res = await db
+        .insert(UserAddressTable)
+        .values({ ...address, userId: userdetails.id });
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const updatedAddressesInDb = async (address) => {
+    try {
+      const res = await db
+        .update(UserAddressTable)
+        .set({ ...address, userId: userdetails.id });
+      console.log("updated");
+    } catch (error) {
+      console.log(error);
+    }
+  };
   // Handler: Save or update address
   const handleSaveAddress = () => {
     if (editingIndex === null && addresses.length >= 4) {
@@ -579,9 +607,12 @@ export default function Checkout() {
       updatedAddresses[editingIndex] = newAddress;
       setAddresses(updatedAddresses);
       setSelectedAddress(newAddress);
+      updatedAddressesInDb(newAddress);
+      console.log(newAddress);
       setEditingIndex(null);
     } else {
       setAddresses([...addresses, newAddress]);
+      saveAddressInDb(newAddress);
       setSelectedAddress(newAddress);
     }
     setNewAddress({
@@ -659,7 +690,7 @@ export default function Checkout() {
           Math.floor(
             item.product.oprice -
               (item.product.discount / 100) * item.product.oprice
-          ) * item.product.quantity, // Assuming dprice is the discounted price
+          ) * item.product?.quantity, // Assuming dprice is the discounted price
       }));
 
       await db.insert(orderItemsTable).values(orderItemsData);
@@ -667,6 +698,7 @@ export default function Checkout() {
       setLoading(false);
 
       setStep(4);
+      setCart([]);
     } catch (error) {
       console.log(error);
     }
