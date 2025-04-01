@@ -4,7 +4,7 @@ import React, { useContext, useEffect, useState } from "react";
 import ProductImage from "../assets/images/mockup-empty-perfume-bottle-perfume-brand-design_826454-355-removebg-preview.png";
 import "../style/myorder.css";
 import { OrderContext } from "../contexts/OrderContext";
-import { UserContext } from "../contexts/UserContext"; // Import UserContext
+import { UserContext } from "../contexts/UserContext";
 
 /**
  * Helper function to format a date string into a readable format with AM/PM.
@@ -25,27 +25,18 @@ const formatDateTime = (dateString) => {
  * cancellation, and reorder functionality.
  */
 const MyOrders = () => {
-  // Retrieve orders and updater function from OrderContext.
-  // const { orders, setOrders } = useContext(OrderContext);
-  // Retrieve userdetails data (e.g., orderCount) from UserContext.
   const { userdetails, setUserdetails, orders } = useContext(UserContext);
-  // console.log(orders);
-  // Local state to manage whether each order's tracking details are expanded.
   const [expandedOrders, setExpandedOrders] = useState({});
-  // Local state for cancellation messages, keyed by order id.
   const [cancellationMessages, setCancellationMessages] = useState({});
 
-  // Initialize tracking expansion for each order when orders update.
-  // useEffect(() => {
-  //   if (orders && orders.length > 0) {
-  //     const initialExpanded = {};
-  //     orders.forEach((order) => {
-  //       initialExpanded[order.orderId] = true; // All orders open by default.
-  //     });
-  //     setExpandedOrders(initialExpanded);
-  //   }
-  //   setUserdetails((prevUser) => ({ ...prevUser, orderCount: orders.length }));
-  // }, []);
+  // Debug: Log orders data on mount/update.
+  useEffect(() => {
+    orders.forEach((order) => {
+      console.log(
+        `Order ${order.orderId}: progressStep = ${order.progressStep}, status = ${order.status}`
+      );
+    });
+  }, [orders]);
 
   /**
    * Renders progress steps for an order.
@@ -55,7 +46,7 @@ const MyOrders = () => {
    */
   const renderStepProgress = (progressStep, status) => {
     const steps = ["Order Placed", "Processing", "Shipped", "Delivered"];
-    // If order is delivered, treat final step as one beyond the last step.
+    // If the order is delivered, mark the final step accordingly.
     const finalProgressStep =
       status === "Delivered" ? steps.length + 1 : progressStep;
 
@@ -82,22 +73,21 @@ const MyOrders = () => {
    * @param {number|string} orderId - The unique id of the order.
    */
   const trackOrder = (orderId) => {
-    setExpandedOrders((prev) => ({
-      ...prev,
-      [orderId]: !prev[orderId],
-    }));
+    setExpandedOrders((prev) => {
+      const newState = { ...prev, [orderId]: !prev[orderId] };
+      console.log(`Toggled expanded state for Order ${orderId}:`, newState[orderId]);
+      return newState;
+    });
   };
 
   /**
-   * Handles order cancellation. Checks if the order can be cancelled
-   * (within 2 minutes of order placement). If not, sets an appropriate message.
+   * Handles order cancellation.
    * @param {number|string} orderId - The unique id of the order.
    */
   const cancelOrder = (orderId) => {
-    const order = orders.find((o) => o.id === orderId);
+    const order = orders.find((o) => o.orderId === orderId);
     if (!order) return;
 
-    // Use order.date to determine if 2 minutes (120,000 ms) have passed.
     const orderTimestamp = new Date(order.date).getTime();
     if (Date.now() - orderTimestamp > 120000) {
       setCancellationMessages((prev) => ({
@@ -107,15 +97,11 @@ const MyOrders = () => {
       }));
       return;
     }
-    // Clear any previous cancellation message if cancellation is allowed.
-    setCancellationMessages((prev) => ({
-      ...prev,
-      [orderId]: "",
-    }));
+    setCancellationMessages((prev) => ({ ...prev, [orderId]: "" }));
     if (window.confirm(`Are you sure you want to cancel Order #${orderId}?`)) {
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
-          order.id === orderId
+          order.orderId === orderId
             ? { ...order, status: "Cancellation in Progress" }
             : order
         )
@@ -129,32 +115,26 @@ const MyOrders = () => {
    */
   const reorder = (orderId) => {
     console.log("Reorder", orderId);
-    // Implement reorder logic here (e.g., add order items to cart)
+    // Implement reorder logic here
   };
-  useEffect(() => {
-    console.log("Orders received:", orders);
-  }, [orders]);
 
   return (
     <div className="myorder-container">
       <h1 className="my-order-title">My Orders</h1>
-      {/* Example of displaying userdetails-related information */}
       <p>
-        {/* Welcome back! You have placed <strong>{userdetails.orderCount}</strong>{" "}
-        {userdetails.orderCount === 1 ? "order" : "orders"}. */}
+        {/* Optionally display order count */}
       </p>
       <div className="myorders">
         <div className="orders-section">
           <div id="orders-list">
-            {/* {console.log(orders)} */}
             {orders && orders.length > 0 ? (
               orders.map((order, index) => (
                 <div key={order.orderId + index} className="order-card">
-                  <div className="   flex justify-between p-5  font-semibold ">
+                  <div className="flex justify-between p-5 font-semibold">
                     <h3>Order #{order.orderId}</h3>
                     <label
-                      className={` jhaatu_item text-black  border-2 border-white rounded-xl p-5   ${
-                        order.paymentStatus == "paid"
+                      className={`jhaatu_item text-black border-2 border-white rounded-xl p-5 ${
+                        order.paymentStatus === "paid"
                           ? "bg-green-500"
                           : "bg-yellow-400"
                       }`}
@@ -169,8 +149,8 @@ const MyOrders = () => {
                     <strong>Total Amount:</strong> ₹{order.totalAmount}
                   </p>
                   <div className="order-items">
-                    {order.items.map((item, index) => (
-                      <div key={index} className="order-item">
+                    {order.items.map((item, idx) => (
+                      <div key={idx} className="order-item">
                         <img src={item.img || ProductImage} alt={item.name} />
                         <span>
                           {item.productName} - ₹{item.price}
@@ -179,7 +159,7 @@ const MyOrders = () => {
                     ))}
                   </div>
                   <div className="buttons">
-                    {/* Only show track button if order is not cancelled or in cancellation progress */}
+                    {/* Show track button if order is active */}
                     {order.status !== "Cancellation in Progress" &&
                       order.status !== "Order Cancelled" && (
                         <button
@@ -191,11 +171,10 @@ const MyOrders = () => {
                             : "Track Order"}
                         </button>
                       )}
-                    {/* Conditional rendering based on order status */}
                     {order.status === "Delivered" ? (
                       <button
                         className="reorder-btn"
-                        onClick={() => reorder(order.id)}
+                        onClick={() => reorder(order.orderId)}
                       >
                         Reorder
                       </button>
@@ -210,32 +189,30 @@ const MyOrders = () => {
                     ) : (
                       <button
                         className="cancel-btn"
-                        onClick={() => cancelOrder(order.id)}
+                        onClick={() => cancelOrder(order.orderId)}
                       >
                         Cancel Order
                       </button>
                     )}
                   </div>
-                  {/* Show cancellation message if exists */}
-                  {cancellationMessages[order.id] && (
+                  {cancellationMessages[order.orderId] && (
                     <div className="cancel-message">
-                      {cancellationMessages[order.id]}
+                      {cancellationMessages[order.orderId]}
                     </div>
                   )}
-                  {/* Display order progress only if expanded and order is active */}
-                  {order.progressStep &&
-                    order.status !== "Cancellation in Progress" &&
-                    order.status !== "Order Cancelled" &&
-                    expandedOrders[order.id] && (
-                      <div className="order-progress">
-                        {renderStepProgress(order.progressStep, order.status)}
-                      </div>
-                    )}
-                  {/* Always display the current order status */}
+                  {/* Simplified progress steps rendering */}
+                  {expandedOrders[order.orderId] && (
+                    <div className="order-progress">
+                      {renderStepProgress(
+                        order.progressStep !== undefined && order.progressStep !== null
+                          ? order.progressStep
+                          : 0,
+                        order.status
+                      )}
+                    </div>
+                  )}
                   {order.status && (
-                    <div
-                      className={`tracking-status  flex justify-between items-center bg-zinc-100`}
-                    >
+                    <div className="tracking-status flex justify-between items-center ">
                       <span>
                         <strong>Status:</strong> {order.status}
                       </span>
