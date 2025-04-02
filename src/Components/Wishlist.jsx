@@ -1,114 +1,159 @@
-// src/pages/Wishlist.js
-
 import React, { useContext, useEffect, useState } from "react";
 import "../style/wishlist.css";
 import { CartContext } from "../contexts/CartContext";
+import { wishlistTable, addToCartTable } from "../../configs/schema";
+import { eq, and } from "drizzle-orm";
+import { db } from "../../configs";
+import { UserContext } from "../contexts/UserContext";
+import { toast, ToastContainer } from "react-toastify";
 
-/**
- * Wishlist Component
- * Renders a list of wishlistitems items with options to remove an item,
- * move an item to the cart, or clear the entire wishlistitems.
- *
- * Props:
- * - wishlistitems: Array of wishlistitems items.
- * - setWishlistitems: Function to update the wishlistitems.
- * - cart: Array of cart items.
- * - setCart: Function to update the cart.
- */
-const Wishlist = ({ cart, setCart }) => {
+const Wishlist = () => {
   const [wishlistitems, setWishlistitems] = useState([]);
-  const { wishlist } = useContext(CartContext);
-  // -----------------------------------------------------------
-  // Function: moveToCart
-  // Adds a wishlistitems item to the cart and removes it from the wishlistitems.
-  // -----------------------------------------------------------
+  const { wishlist, setWishlist, getwishlist, cart, setCart } =
+    useContext(CartContext);
+
+  // const { usedetails } = useContext(UserContext);
+  // Fetch the latest wishlist when the component mounts
+  useEffect(() => {
+    getwishlist(); // Ensure latest data is fetched
+  }, []);
 
   useEffect(() => {
-    wishlist && setWishlistitems(wishlist);
+    setWishlistitems(wishlist); // Sync local state when wishlist updates
   }, [wishlist]);
-  const moveToCart = (wishlistitem, index) => {
-    const item = wishlistitems[index]; // Get the item from the wishlistitems.
+
+  const moveToCart = async (wishlistitem, index) => {
+    const item = wishlistitems[index];
     if (!item) return;
 
-    // Update cart state.
     setCart((prevCart) => {
-      // If the cart is empty, add the item directly.
-      if (prevCart.length === 0) {
-        return [{ ...item, quantity: 1 }];
-      }
-      // Check if the item already exists in the cart.
       const existingItem = prevCart.find(
-        (cartItem) => cartItem.name === item.name
+        (cartItem) => cartItem.product.id === item.productId
       );
-      if (existingItem) {
-        // Increase quantity if it exists.
-        return prevCart.map((cartItem) =>
-          cartItem.name === item.name
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
-      } else {
-        // Otherwise, add the new item with initial quantity of 1.
-        return [...prevCart, { ...item, quantity: 1 }];
-      }
+
+      return existingItem
+        ? prevCart.map((cartItem) =>
+            cartItem.product.id === item.productId
+              ? {
+                  ...cartItem,
+                  product: {
+                    ...cartItem.product,
+                    quantity: (cartItem.product.quantity || 1) + 1,
+                  },
+                }
+              : cartItem
+          )
+        : [
+            ...prevCart,
+            {
+              product: { ...item.product, quantity: 1 },
+              cartId: item.wishlistId,
+            },
+          ];
     });
 
-    // Remove the item from the wishlistitems.
     setWishlistitems((prevWishlist) =>
       prevWishlist.filter((_, i) => i !== index)
     );
+
+    try {
+      // 🔹 Check if product is already in the cart
+      const existingCartItem = await db
+        .select()
+        .from(addToCartTable)
+        .where(
+          and(
+            eq(addToCartTable.userId, item.userId),
+            eq(addToCartTable.productId, item.productId)
+          )
+        );
+      console.log(existingCartItem);
+      if (existingCartItem.length > 0) {
+        // 🔹 If exists, update the quantity in DB
+        await db
+          .update(addToCartTable)
+          .set({ quantity: existingCartItem[0].quantity + 1 })
+          .where(
+            and(
+              eq(addToCartTable.userId, item.userId),
+              eq(addToCartTable.productId, item.productId)
+            )
+          );
+      } else {
+        // 🔹 If doesn't exist, insert into cart
+        const res = await db
+          .insert(addToCartTable)
+          .values({
+            productId: item.productId,
+            userId: item.userId,
+            // Ensure quantity starts from 1
+          })
+          .returning({ cartId: addToCartTable.id });
+
+        // 🔹 Update cart state with correct `cartId` from DB
+        setCart((prevCart) =>
+          prevCart.map((cartItem) =>
+            cartItem.product.id === item.productId
+              ? { ...cartItem, cartId: res[0]?.cartId }
+              : cartItem
+          )
+        );
+      }
+
+      // 🔹 Remove from wishlist in DB after successful cart update
+      await db
+        .delete(wishlistTable)
+        .where(
+          and(
+            eq(wishlistTable.userId, item.userId),
+            eq(wishlistTable.productId, item.productId)
+          )
+        );
+
+      toast.success("Moved to cart");
+      setWishlist((prev) => prev.filter((_, i) => i !== index));
+    } catch (error) {
+      console.error("Error moving item to cart:", error);
+
+      // 🔹 Restore wishlist item if DB operation fails
+      setWishlistitems((prevWishlist) => [...prevWishlist, item]);
+
+      // 🔹 Remove from cart only if the DB update fails
+      setCart((prevCart) =>
+        prevCart.filter((cartItem) => cartItem.product.id !== item.productId)
+      );
+    }
   };
 
-  // -----------------------------------------------------------
-  // Function: removeWishlistItem
-  // Removes a single item from the wishlistitems.
-  // -----------------------------------------------------------
-  const removeWishlistItem = (index) => {
-    setWishlistitems((prevWishlist) =>
-      prevWishlist.filter((_, i) => i !== index)
-    );
-  };
-
-  // -----------------------------------------------------------
-  // Function: clearWishlist
-  // Clears the entire wishlistitems.
-  // -----------------------------------------------------------
-  const clearWishlist = () => {
-    setWishlistitems([]);
-  };
-
-  // -----------------------------------------------------------
-  // Render the Wishlist UI
-  // -----------------------------------------------------------
   return (
     <div className="main-container">
+      <div className=" absolute">
+        {" "}
+        <ToastContainer />
+      </div>
       <h2 className="w-title">MY WISHLIST</h2>
-      <div id="wishlistitems-container   ">
+      <div id="wishlistitems-container">
         <div id="wishlistitems-items">
           {wishlistitems.length === 0 ? (
             <div id="empty-wishlistitems-message" style={{ color: "black" }}>
               Your Wishlist is empty.
             </div>
           ) : (
-            wishlistitems?.map((wishlisti, index) => {
-              // console.log(item);
+            wishlistitems.map((wishlisti, index) => {
               const item = wishlisti.product || {};
-              // Calculate discounted price.
               const discountedPrice = Math.trunc(
                 item.oprice - (item.oprice * item.discount) / 100
               );
+
               return (
-                <div key={item.id} className="wishlistitems-item">
-                  {/* Product Image */}
-                  <img src={item.imageurl} alt={item.name} className="  w-52" />
-                  {/* Product Title & Size */}
+                <div key={item?.id} className="wishlistitems-item">
+                  <img src={item.imageurl} alt={item.name} className="w-52" />
                   <div className="item-title">
                     <h3>{item.name}</h3>
                     <span style={{ fontWeight: 100, fontSize: "1rem" }}>
                       {item.size}ml
                     </span>
                   </div>
-                  {/* Pricing Details */}
                   <div className="item-price">
                     <span>
                       <strong style={{ color: "green" }}>
@@ -118,28 +163,15 @@ const Wishlist = ({ cart, setCart }) => {
                     </span>
                     <span style={{ color: "blue" }}>{item.discount}% Off</span>
                   </div>
-                  {/* Action Buttons */}
                   <button
                     className="move-to-cart"
                     onClick={() => moveToCart(wishlisti, index)}
                   >
                     Move to Cart
                   </button>
-                  <button
-                    className="remove-wishlistitems"
-                    onClick={() => removeWishlistItem(index)}
-                  >
-                    Remove
-                  </button>
                 </div>
               );
             })
-          )}
-          {/* Clear Wishlist Button: only shown if there are items */}
-          {wishlistitems.length > 0 && (
-            <button id="clear-wishlistitems" onClick={clearWishlist}>
-              Clear Wishlist
-            </button>
           )}
         </div>
       </div>

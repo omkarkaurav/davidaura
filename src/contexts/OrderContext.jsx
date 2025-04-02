@@ -18,6 +18,7 @@ export const OrderProvider = ({ children }) => {
   const { userdetails } = useContext(UserContext);
   // Load orders from localStorage
   const getorders = async () => {
+    if (!userdetails) return;
     try {
       const orderQuery = await db
         .select({
@@ -92,7 +93,7 @@ export const OrderProvider = ({ children }) => {
   }, [orders]);
 
   return (
-    <OrderContext.Provider value={{ orders, setOrders }}>
+    <OrderContext.Provider value={{ getorders, orders, setOrders }}>
       {children}
     </OrderContext.Provider>
   );

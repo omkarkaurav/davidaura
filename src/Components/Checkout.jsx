@@ -7,6 +7,7 @@ import { OrderContext } from "../contexts/OrderContext";
 import { db } from "../../configs";
 import {
   addressTable,
+  addToCartTable,
   orderItemsTable,
   ordersTable,
   UserAddressTable,
@@ -15,6 +16,7 @@ import { UserContext } from "../contexts/UserContext";
 import QRCodeImage from "../assets/example.webp";
 import { ToastContainer, toast } from "react-toastify";
 import { CartContext } from "../contexts/CartContext";
+import { eq } from "drizzle-orm";
 
 // -------------------------------------------------------------------
 // Helper Function: formatAddress
@@ -141,8 +143,7 @@ function AddressSelection({
 // -------------------------------------------------------------------
 function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
   const originalTotal = selectedItems.reduce(
-    (acc, item) =>
-      acc + Math.floor(item.product.oprice) * (item.product.quantity || 1),
+    (acc, item) => acc + Math.floor(item.product.oprice) * (item.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
@@ -152,7 +153,7 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
         item.product.oprice -
           (item.product.oprice * item.product.discount) / 100
       ) *
-        (item.product.quantity || 1),
+        (item.quantity || 1),
     0
   );
   const discountCalculated = originalTotal - productTotal;
@@ -182,10 +183,12 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
               <div className="item-price-quantity">
                 <span style={{ color: "green" }}>
                   ₹
-                  {item.product.oprice -
-                    (item.product.oprice * item.product.discount) / 100}
+                  {Math.floor(
+                    item.product.oprice -
+                      (item.product.oprice * item.product.discount) / 100
+                  )}
                 </span>
-                <p>Quantity: {item.product.quantity || 1}</p>
+                <p>Quantity: {item.quantity || 1}</p>
               </div>
             </div>
           ))
@@ -694,11 +697,14 @@ export default function Checkout() {
       }));
 
       await db.insert(orderItemsTable).values(orderItemsData);
+      await db
+        .delete(addToCartTable)
+        .where(eq(addToCartTable.userId, userdetails.id));
       toast.success("order Placed");
+      setCart([]);
       setLoading(false);
 
       setStep(4);
-      setCart([]);
     } catch (error) {
       console.log(error);
     }

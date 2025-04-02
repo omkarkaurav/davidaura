@@ -13,7 +13,7 @@ import {
   wishlistTable,
 } from "../../configs/schema";
 import { useUser } from "@clerk/clerk-react";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { UserContext } from "../contexts/UserContext";
 import { CartContext } from "../contexts/CartContext";
 
@@ -304,6 +304,7 @@ const Modal = ({ product, onClose }) => {
 // Products Component
 // -------------------------------
 const Products = () => {
+  const [loading, setLoading] = useState(false);
   // const [cart, setCart] = useState([]);
   const { products } = useContext(ProductContext);
   const [modalProduct, setModalProduct] = useState(null);
@@ -322,9 +323,19 @@ const Products = () => {
   }, [modalProduct]);
 
   const { userdetails } = useContext(UserContext);
-
+  let count = 1;
   const addtocart = async (product) => {
+    const tempCartItem = {
+      product,
+      cartId: `temp-${product.id + count++}`, // Temporary cart ID
+      userId: userdetails?.id,
+    };
+
+    // Optimistically update the cart
+    setCart((prev) => [...prev, tempCartItem]);
+
     try {
+      setLoading(true);
       const res1 = await db
         .insert(addToCartTable)
         .values({
@@ -336,12 +347,44 @@ const Products = () => {
           userId: addToCartTable.userId,
         });
 
-      setCart((pre) => [
-        ...pre,
-        { product, cartId: res1.cartId, userId: res1.userId },
-      ]);
+      // Replace temp cart item with actual DB response
+      setCart((prev) =>
+        prev.map((item) =>
+          item.product.id === product.id && item.userId === userdetails?.id
+            ? { ...item, cartId: res1.cartId }
+            : item
+        )
+      );
     } catch (error) {
-      console.log(error);
+      console.error("Failed to add to cart:", error);
+      // Remove the temp item if DB call fails
+      setCart((prev) =>
+        prev.filter((item) => item.cartId !== tempCartItem.cartId)
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeFromCart = async (product) => {
+    const backupCart = [...cart]; // Backup the cart state in case of failure
+
+    try {
+      setCart((prev) => prev.filter((item) => item.product.id !== product.id));
+
+      await db
+        .delete(addToCartTable)
+        .where(
+          and(
+            eq(addToCartTable.userId, userdetails?.id),
+            eq(addToCartTable.productId, product?.id)
+          )
+        );
+    } catch (error) {
+      // console.error("Failed to remove from cart:", error);
+      setCart(backupCart); // Restore the previous state if the call fails
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -386,21 +429,26 @@ const Products = () => {
   // };
 
   const toggleWishlist = async (product) => {
-    try {
-      // Check if product is already in the wishlist
-      const existingWishlistItem = await db
-        .select()
-        .from(wishlistTable)
-        .where(
-          and(
-            eq(wishlistTable.userId, userdetails?.id),
-            eq(wishlistTable.productId, product.id)
-          )
-        )
-        .limit(1); // We only need one matching entry
+    const tempWishlistItem = {
+      productId: product.id,
+      wishlistId: `temp-${product.id + count++}`, // Temporary wishlist ID
+      userId: userdetails?.id,
+    };
 
-      if (existingWishlistItem.length > 0) {
-        // If product exists, remove it from wishlist
+    // Optimistically update the wishlist
+    setWishlist((prev) => [...prev, tempWishlistItem]);
+
+    try {
+      const existingWishlistItem = wishlist.find(
+        (item) => item.productId === product.id
+      );
+
+      if (existingWishlistItem) {
+        // Remove from wishlist
+        setWishlist((prev) =>
+          prev.filter((item) => item.productId !== product.id)
+        );
+
         await db
           .delete(wishlistTable)
           .where(
@@ -409,13 +457,8 @@ const Products = () => {
               eq(wishlistTable.productId, product.id)
             )
           );
-
-        // Update state by removing the product
-        setWishlist((prevWishlist) =>
-          prevWishlist.filter((item) => item.productId !== product.id)
-        );
       } else {
-        // If product does not exist, add it
+        // Add to wishlist in DB
         const res = await db
           .insert(wishlistTable)
           .values({
@@ -428,11 +471,21 @@ const Products = () => {
             userId: wishlistTable.userId,
           });
 
-        // Update state by adding the product
-        setWishlist((prevWishlist) => [...prevWishlist, product]);
+        // Replace temp wishlist item with actual DB response
+        setWishlist((prev) =>
+          prev.map((item) =>
+            item.productId === product.id && item.userId === userdetails?.id
+              ? { ...item, wishlistId: res.wishlistId }
+              : item
+          )
+        );
       }
     } catch (error) {
-      console.error("Error toggling wishlist:", error);
+      // console.error("Error toggling wishlist:", error);
+      // Remove the temp item if DB call fails
+      setWishlist((prev) =>
+        prev.filter((item) => item.wishlistId !== tempWishlistItem.wishlistId)
+      );
     }
   };
 
@@ -469,7 +522,7 @@ const Products = () => {
           const discountedPrice = Math.trunc(
             product.oprice - (product.oprice * product.discount) / 100
           );
-          const inCart = cart.some((item) => item.name === product.name);
+          const inCart = cart.some((item) => item.product.id === product.id);
           const inWishlist = wishlist.some(
             (item) => item.productId == product.id
           );
@@ -515,17 +568,31 @@ const Products = () => {
                   {product.discount}% Off
                 </span>
               </div>
-              <button
-                onClick={() => {
-                  addtocart(product);
-                }}
-                className={`w-full py-2 text-lg font-semibold flex items-center justify-center gap-2 transition ${
-                  inCart ? "bg-black text-white" : "bg-black text-white"
-                }`}
-              >
-                {"Add to Cart"}
-                <img src={CartImage} alt="Cart" className="w-8 h-8" />
-              </button>
+              {inCart ? (
+                <button
+                  onClick={() => {
+                    removeFromCart(product);
+                  }}
+                  className={`w-full py-2 text-lg font-semibold flex items-center justify-center gap-2 transition ${
+                    inCart ? "bg-black text-white" : "bg-black text-white"
+                  }`}
+                >
+                  {"remove from cart"}
+                  <img src={CartImage} alt="Cart" className="w-8 h-8" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    addtocart(product);
+                  }}
+                  className={`w-full py-2 text-lg font-semibold flex items-center justify-center gap-2 transition ${
+                    inCart ? "bg-black text-white" : "bg-black text-white"
+                  }`}
+                >
+                  {"add to cart"}
+                  <img src={CartImage} alt="Cart" className="w-8 h-8" />
+                </button>
+              )}
             </div>
           );
         })}

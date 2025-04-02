@@ -6,16 +6,19 @@ import "../style/cart.css";
 import { ProductContext } from "../contexts/productContext"; // Global product state
 import { UserContext } from "../contexts/UserContext"; // New User Context
 import { db } from "../../configs";
-import { addToCartTable } from "../../configs/schema";
+import { addToCartTable, wishlistTable } from "../../configs/schema";
 import { and, eq } from "drizzle-orm";
 import { CartContext } from "../contexts/CartContext";
+import { toast, ToastContainer } from "react-toastify";
 
-const ShoppingCart = ({ wishlist, setWishlist }) => {
+const ShoppingCart = () => {
   const navigate = useNavigate();
+  const [cartitems, setCartitems] = useState([]);
   const { products } = useContext(ProductContext); // Retrieve global products
   const { userdetails } = useContext(UserContext); // Access user data (e.g., orderCount)
 
-  const { cart, setCart } = useContext(CartContext);
+  const { cart, setCart, wishlist, setWishlist, getCartitems } =
+    useContext(CartContext);
   // -------------------------------
   // Checkout Handler
   // -------------------------------
@@ -30,59 +33,128 @@ const ShoppingCart = ({ wishlist, setWishlist }) => {
     localStorage.setItem("selectedItems", JSON.stringify(cart));
     navigate("/checkout");
   };
-  console.log("hello");
+
   useEffect(() => {
-    cart?.length && setCart(cart);
+    getCartitems();
+  }, []);
+
+  useEffect(() => {
+    setCartitems(cart);
   }, [cart]);
 
   // -------------------------------
   // Cart Management Functions
   // -------------------------------
-  const addToCart = (product) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.name === product.name);
-      let updatedCart;
-      if (existingItem) {
-        updatedCart = prevCart.map((item) =>
-          item.name === product.name
-            ? { ...item, quantity: item.quantity + 1 }
+  let count = 1;
+  const addToCart = async (product) => {
+    const tempCartItem = {
+      product,
+      cartId: `temp-${product.id + count++}`, // Temporary cart ID
+      userId: userdetails?.id,
+    };
+
+    // Optimistically update the cart
+    setCart((prev) => [...prev, tempCartItem]);
+
+    try {
+      const res1 = await db
+        .insert(addToCartTable)
+        .values({
+          productId: product.id,
+          userId: userdetails?.id,
+        })
+        .returning({
+          cartId: addToCartTable.id,
+          userId: addToCartTable.userId,
+        });
+
+      // Replace temp cart item with actual DB response
+      setCart((prev) =>
+        prev.map((item) =>
+          item.product.id === product.id && item.userId === userdetails?.id
+            ? { ...item, cartId: res1.cartId }
             : item
-        );
-      } else {
-        updatedCart = [
-          ...prevCart,
-          {
-            ...product,
-            dprice: Math.trunc(
-              product.oprice - (product.oprice * product.discount) / 100
-            ),
-            quantity: 1,
-          },
-        ];
-      }
-      setCart(updatedCart); // Persist in global context
-      return updatedCart;
-    });
+        )
+      );
+    } catch (error) {
+      // Remove the temp item if DB call fails
+      setCart((prev) =>
+        prev.filter((item) => item.cartId !== tempCartItem.cartId)
+      );
+    }
   };
 
-  const moveToWishlist = (index) => {
-    setCart((prevCart) => {
-      const itemToMove = prevCart?.[index];
-      if (!itemToMove) return prevCart;
+  const moveToWishlist = async (prod) => {
+    const product = prod?.product || {};
+    if (!product.id) {
+      toast.error("Invalid product");
+      return;
+    }
 
-      setWishlist((prevWishlist) => {
-        if (
-          prevWishlist?.some(
-            (wishlistItem) => wishlistItem?.name === itemToMove?.name
-          )
-        ) {
-          return prevWishlist;
+    const existingWishlistItem = wishlist.find(
+      (item) => item.productId === product.id
+    );
+    if (existingWishlistItem) {
+      toast.info("Already Wishlisted");
+      return;
+    } else {
+      const tempWishlistItem = {
+        productId: product.id,
+        wishlistId: `temp-${product.id + count++}`,
+        userId: userdetails?.id,
+      };
+
+      // Optimistically update the wishlist
+      setWishlist((prev) => [...prev, tempWishlistItem]);
+
+      try {
+        // Add to wishlist in DB
+        const res = await db
+          .insert(wishlistTable)
+          .values({
+            userId: userdetails?.id,
+            productId: product.id,
+          })
+          .returning({
+            wishlistId: wishlistTable.id,
+            productId: wishlistTable.productId,
+            userId: wishlistTable.userId,
+          });
+        await db
+          .delete(addToCartTable)
+          .where(
+            and(
+              eq(addToCartTable.productId, product.id),
+              eq(addToCartTable.userId, prod.userId)
+            )
+          );
+
+        if (res.length > 0) {
+          toast.success("Moved to wishlist");
+
+          // Remove from cart only after DB success
+          setCart((prev) =>
+            prev.filter((item) => item.product.id !== product.id)
+          );
+
+          // Replace temp wishlist item with actual DB response
+          setWishlist((prev) =>
+            prev.map((item) =>
+              item.productId === product.id && item.userId === userdetails?.id
+                ? { ...res[0] } // Use the actual DB response
+                : item
+            )
+          );
         }
-        return [...prevWishlist, itemToMove];
-      });
+      } catch (error) {
+        toast.error("Failed to move to wishlist");
 
-      return prevCart?.filter((_, i) => i !== index);
-    });
+        // Remove the temp item if DB call fails
+        setWishlist((prev) =>
+          prev.filter((item) => item.productId !== tempWishlistItem.productId)
+        );
+      }
+    }
   };
 
   function updateQuantity(index, change) {
@@ -92,10 +164,8 @@ const ShoppingCart = ({ wishlist, setWishlist }) => {
           i === index
             ? {
                 ...item, // Preserve the item structure (itemid, userid, etc.)
-                product: {
-                  ...item.product, // Preserve product properties
-                  quantity: Math.max(1, item.product.quantity + change), // Update quantity, ensuring it’s at least 1
-                },
+                // Preserve product properties
+                quantity: Math.max(1, item.quantity + change), // Update quantity, ensuring it’s at least 1
               }
             : item // If not the selected item, return it as-is
       )
@@ -133,8 +203,7 @@ const ShoppingCart = ({ wishlist, setWishlist }) => {
   // Price Calculation Variables
   // -------------------------------
   const totalOriginal = cart?.reduce(
-    (acc, item) =>
-      acc + (item?.product?.oprice || 0) * (item?.product?.quantity || 0),
+    (acc, item) => acc + (item?.product?.oprice || 0) * (item?.quantity || 0),
     0
   );
 
@@ -145,7 +214,7 @@ const ShoppingCart = ({ wishlist, setWishlist }) => {
         (item?.product?.oprice || 0) -
           ((item?.product?.discount || 0) / 100) * (item?.product?.oprice || 0)
       ) *
-        (item?.product?.quantity || 0),
+        (item?.quantity || 0),
     0
   );
 
@@ -157,7 +226,8 @@ const ShoppingCart = ({ wishlist, setWishlist }) => {
   const renderRemainingProducts = () => {
     return products
       ?.filter(
-        (product) => !cart?.some((cartItem) => cartItem?.name === product?.name)
+        (product) =>
+          !cart?.some((cartItem) => cartItem?.product.id === product?.id)
       )
       .map((product) => {
         const discountedPrice = Math.trunc(
@@ -202,11 +272,15 @@ const ShoppingCart = ({ wishlist, setWishlist }) => {
   return (
     <>
       <main className="main-container">
+        <div className=" absolute">
+          {" "}
+          <ToastContainer />
+        </div>
         <h1 className="cart-title">Your Shopping Cart</h1>
         <div className="cart-item-summary-container">
           {/* ---------- Cart Items List ---------- */}
           <div className="cart-items-box">
-            {cart?.map((item, index) => (
+            {cartitems?.map((item, index) => (
               <div key={index} className="cart-item">
                 <img src={item?.product?.imageurl} alt={item?.product?.name} />
                 <div className="product-title">
@@ -220,9 +294,7 @@ const ShoppingCart = ({ wishlist, setWishlist }) => {
                   >
                     -
                   </button>
-                  <span className="item-quantity">
-                    {item?.product?.quantity}
-                  </span>
+                  <span className="item-quantity">{item?.quantity}</span>
                   <button
                     className="increase"
                     onClick={() => updateQuantity(index, 1)}
@@ -256,7 +328,7 @@ const ShoppingCart = ({ wishlist, setWishlist }) => {
                 </button>
                 <button
                   className="move-to-wishlist"
-                  onClick={() => moveToWishlist(index)}
+                  onClick={() => moveToWishlist(item, index)}
                 >
                   Move to Wishlist
                 </button>
