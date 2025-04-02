@@ -9,10 +9,11 @@ import { useLocation } from "react-router-dom";
 import { db } from "../../configs";
 import {
   addToCartTable,
+  usersTable,
   wishlistTable,
-  productsTable, // Import products table to fetch fresh details
 } from "../../configs/schema";
-import { eq, and } from "drizzle-orm";
+import { useUser } from "@clerk/clerk-react";
+import { and, eq } from "drizzle-orm";
 import { UserContext } from "../contexts/UserContext";
 import { CartContext } from "../contexts/CartContext";
 
@@ -21,6 +22,7 @@ import { CartContext } from "../contexts/CartContext";
 // -------------------------------
 const Modal = ({ product, onClose }) => {
   const [animate, setAnimate] = useState(false);
+  const [loading, setLoading] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -32,7 +34,7 @@ const Modal = ({ product, onClose }) => {
         if (targetElement) {
           targetElement.scrollIntoView({ behavior: "smooth" });
         }
-      }, 500);
+      }, 500); // Adjust delay if necessary
 
       return () => clearTimeout(timeoutId);
     }
@@ -58,13 +60,14 @@ const Modal = ({ product, onClose }) => {
           position: "relative",
           background: "#fff",
           padding: "30px",
-          borderRadius: "10px",
+          borderRadius: "10px", // Button radius remains unchanged
           boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
           transform: animate ? "scale(1)" : "scale(0)",
           transition: "transform 0.5s ease",
           maxWidth: "600px",
           width: "90%",
-          maxHeight: "90vh",
+          maxHeight: "90vh", // Limit modal height to 90% of viewport
+          // overflowY: "auto",
         }}
       >
         <button
@@ -86,10 +89,10 @@ const Modal = ({ product, onClose }) => {
           alt={product.name}
           style={{
             width: "250px",
-            height: "100px", // Do not change this image size
+            Height: "100px", // Do not change this image size
             objectFit: "cover",
-            borderRadius: "8px",
-            margin: "0 auto",
+            borderRadius: "8px", // Remains unchanged
+            margin: "0 auto ",
             display: "block",
           }}
         />
@@ -103,7 +106,13 @@ const Modal = ({ product, onClose }) => {
         >
           {product.name}
         </h2>
-        <div style={{ fontSize: "12px", lineHeight: "1", color: "#444" }}>
+        <div
+          style={{
+            fontSize: "12px",
+            lineHeight: "1",
+            color: "#444",
+          }}
+        >
           {product.description && (
             <div style={{ marginBottom: "20px" }}>
               <h3
@@ -174,12 +183,14 @@ const Modal = ({ product, onClose }) => {
 // Products Component
 // -------------------------------
 const Products = () => {
+  const [loading, setLoading] = useState(false);
+  // const [cart, setCart] = useState([]);
   const { products } = useContext(ProductContext);
   const [modalProduct, setModalProduct] = useState(null);
+  // const { user } = useUser();
   const { setCart, cart, wishlist, setWishlist } = useContext(CartContext);
-  const { userdetails } = useContext(UserContext);
-
   // Prevent background scrolling when modal is open.
+
   useEffect(() => {
     if (modalProduct) {
       document.body.style.overflow = "hidden";
@@ -190,72 +201,133 @@ const Products = () => {
     }
   }, [modalProduct]);
 
-  // -------------------------------
-  // Toggle Cart: Add or Remove Product with Matched Details
-  // -------------------------------
-  const toggleCart = async (product) => {
+  const { userdetails } = useContext(UserContext);
+  let count = 1;
+  const addtocart = async (product) => {
+    const tempCartItem = {
+      product,
+      cartId: `temp-${product.id + count++}`, // Temporary cart ID
+      userId: userdetails?.id,
+    };
+
+    // Optimistically update the cart
+    setCart((prev) => [...prev, tempCartItem]);
+
     try {
-      // Fetch latest product details from the database using product ID
-      const latestProducts = await db
-        .select()
-        .from(productsTable)
-        .where(eq(productsTable.id, product.id));
-
-      if (!latestProducts || latestProducts.length === 0) {
-        console.error("Product not found in DB");
-        return;
-      }
-      const latestProduct = latestProducts[0];
-
-      // Check if product is already in cart
-      const existingCartItem = cart.find((item) => item.product.id === latestProduct.id);
-
-      if (existingCartItem) {
-        // Remove from cart in the database
-        await db
-          .delete(addToCartTable)
-          .where(
-            and(
-              eq(addToCartTable.productId, latestProduct.id),
-              eq(addToCartTable.userId, userdetails?.id)
-            )
-          );
-
-        // Remove from state
-        setCart((prevCart) => prevCart.filter((item) => item.product.id !== latestProduct.id));
-      } else {
-        // Add to cart in the database
-        const res = await db
-          .insert(addToCartTable)
-          .values({
-            productId: latestProduct.id,
-            userId: userdetails?.id,
-          })
-          .returning({
-            cartId: addToCartTable.id,
-            userId: addToCartTable.userId,
-          });
-
-        // Ensure no duplicates before updating state
-        setCart((prevCart) => {
-          const isAlreadyAdded = prevCart.some((item) => item.product.id === latestProduct.id);
-          return isAlreadyAdded ? prevCart : [...prevCart, { product: latestProduct, quantity: 1 }];
+      setLoading(true);
+      const res1 = await db
+        .insert(addToCartTable)
+        .values({
+          productId: product.id,
+          userId: userdetails?.id,
+        })
+        .returning({
+          cartId: addToCartTable.id,
+          userId: addToCartTable.userId,
         });
-      }
+
+      // Replace temp cart item with actual DB response
+      setCart((prev) =>
+        prev.map((item) =>
+          item.product.id === product.id && item.userId === userdetails?.id
+            ? { ...item, cartId: res1.cartId }
+            : item
+        )
+      );
     } catch (error) {
-      console.error("Error toggling cart:", error);
+      console.error("Failed to add to cart:", error);
+      // Remove the temp item if DB call fails
+      setCart((prev) =>
+        prev.filter((item) => item.cartId !== tempCartItem.cartId)
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
-  // -------------------------------
-  // Toggle Wishlist: Add or Remove Product
-  // -------------------------------
-  const toggleWishlist = async (product) => {
+  const removeFromCart = async (product) => {
+    const backupCart = [...cart]; // Backup the cart state in case of failure
+
     try {
-      // Check if product is already in wishlist
-      const exists = wishlist.some((item) => item.productId === product.id);
-      if (exists) {
-        // Remove from wishlist in the database
+      setCart((prev) => prev.filter((item) => item.product.id !== product.id));
+
+      await db
+        .delete(addToCartTable)
+        .where(
+          and(
+            eq(addToCartTable.userId, userdetails?.id),
+            eq(addToCartTable.productId, product?.id)
+          )
+        );
+    } catch (error) {
+      // console.error("Failed to remove from cart:", error);
+      setCart(backupCart); // Restore the previous state if the call fails
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // const getcartsitem = async () => {
+  //   try {
+  //     const res = await db
+  //       .select({
+  //         product: productsTable,
+  //         userId: addToCartTable.userId,
+  //         cartId: addToCartTable.id,
+  //       })
+  //       .from(addToCartTable)
+  //       .innerJoin(
+  //         productsTable,
+  //         eq(addToCartTable.productId, productsTable.id)
+  //       )
+  //       .where(eq(addToCartTable.userId, userdetails.id));
+  //     setCartitem(res);
+  //     console.log(res);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // };
+
+  // const toggleCart = (product) => {
+  //   console.log(product);
+  //   setCart((prevCart) => {
+  //     const existingItem = prevCart.find((item) => item.name === product.name);
+  //     if (existingItem) {
+  //       return prevCart.filter((item) => item.name !== product.name);
+  //     } else {
+  //       const discountedPrice = Math.trunc(
+  //         product.oprice - (product.oprice * product.discount) / 100
+  //       );
+
+  //       return [
+  //         ...prevCart,
+  //         { ...product, dprice: discountedPrice, quantity: 1 },
+  //       ];
+  //     }
+  //   });
+  // };
+
+  const toggleWishlist = async (product) => {
+    const tempWishlistItem = {
+      productId: product.id,
+      wishlistId: `temp-${product.id + count++}`, // Temporary wishlist ID
+      userId: userdetails?.id,
+    };
+
+    // Optimistically update the wishlist
+    setWishlist((prev) => [...prev, tempWishlistItem]);
+
+    try {
+      const existingWishlistItem = wishlist.find(
+        (item) => item.productId === product.id
+      );
+
+      if (existingWishlistItem) {
+        // Remove from wishlist
+        setWishlist((prev) =>
+          prev.filter((item) => item.productId !== product.id)
+        );
+
         await db
           .delete(wishlistTable)
           .where(
@@ -264,39 +336,35 @@ const Products = () => {
               eq(wishlistTable.productId, product.id)
             )
           );
-        // Update state by removing product
-        setWishlist((prevWishlist) =>
-          prevWishlist.filter((item) => item.productId !== product.id)
-        );
       } else {
-        // Fetch latest product details from DB (optional step)
-        const latestProducts = await db
-          .select()
-          .from(productsTable)
-          .where(eq(productsTable.id, product.id));
-        if (!latestProducts || latestProducts.length === 0) return;
-        const latestProduct = latestProducts[0];
-
-        // Add to wishlist in the database
+        // Add to wishlist in DB
         const res = await db
           .insert(wishlistTable)
           .values({
             userId: userdetails?.id,
-            productId: latestProduct.id,
+            productId: product.id,
           })
           .returning({
             wishlistId: wishlistTable.id,
             productId: wishlistTable.productId,
             userId: wishlistTable.userId,
           });
-        // Update state with the new wishlist item
-        setWishlist((prevWishlist) => [
-          ...prevWishlist,
-          { ...res[0], productId: latestProduct.id },
-        ]);
+
+        // Replace temp wishlist item with actual DB response
+        setWishlist((prev) =>
+          prev.map((item) =>
+            item.productId === product.id && item.userId === userdetails?.id
+              ? { ...item, wishlistId: res.wishlistId }
+              : item
+          )
+        );
       }
     } catch (error) {
-      console.error("Error toggling wishlist:", error);
+      // console.error("Error toggling wishlist:", error);
+      // Remove the temp item if DB call fails
+      setWishlist((prev) =>
+        prev.filter((item) => item.wishlistId !== tempWishlistItem.wishlistId)
+      );
     }
   };
 
@@ -310,6 +378,19 @@ const Products = () => {
 
   return (
     <section className="py-20 mt-50 flex flex-col items-center">
+      {/* <h1 id="products-section" className="product-heading">
+        Our Collection
+      </h1> */}
+
+      {/* Custom 3D Coverflow Carousel Section */}
+      {/* <div className="w-9/10 flex items-center justify-center py-10  ">
+        <CoverflowCarousel
+          products={products}
+          pause={modalProduct !== null}
+          onSlideClick={handleSlideClick}
+        />
+      </div> */}
+
       <h1 id="shop-section" className="product-heading">
         Shop The Luxury
       </h1>
@@ -321,7 +402,9 @@ const Products = () => {
             product.oprice - (product.oprice * product.discount) / 100
           );
           const inCart = cart.some((item) => item.product.id === product.id);
-          const inWishlist = wishlist.some((item) => item.productId === product.id);
+          const inWishlist = wishlist.some(
+            (item) => item.productId == product.id
+          );
 
           return (
             <div
@@ -364,15 +447,31 @@ const Products = () => {
                   {product.discount}% Off
                 </span>
               </div>
-              <button
-                onClick={() => toggleCart(product)}
-                className={`w-full py-2 text-lg font-semibold flex items-center justify-center gap-2 transition ${
-                  inCart ? "bg-black text-white" : "bg-black text-white"
-                }`}
-              >
-                {inCart ? "Remove from Cart" : "Add to Cart"}
-                <img src={CartImage} alt="Cart" className="w-8 h-8" />
-              </button>
+              {inCart ? (
+                <button
+                  onClick={() => {
+                    removeFromCart(product);
+                  }}
+                  className={`w-full py-2 text-lg font-semibold flex items-center justify-center gap-2 transition ${
+                    inCart ? "bg-black text-white" : "bg-black text-white"
+                  }`}
+                >
+                  {"remove from cart"}
+                  <img src={CartImage} alt="Cart" className="w-8 h-8" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    addtocart(product);
+                  }}
+                  className={`w-full py-2 text-lg font-semibold flex items-center justify-center gap-2 transition ${
+                    inCart ? "bg-black text-white" : "bg-black text-white"
+                  }`}
+                >
+                  {"add to cart"}
+                  <img src={CartImage} alt="Cart" className="w-8 h-8" />
+                </button>
+              )}
             </div>
           );
         })}
