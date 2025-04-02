@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import "../style/cart.css";
-import { ProductContext } from "../contexts/productContext"; // Global products
-import { UserContext } from "../contexts/UserContext"; // User details
+import { ProductContext } from "../contexts/productContext"; // Global product state
+import { UserContext } from "../contexts/UserContext"; // New User Context
 import { db } from "../../configs";
 import { addToCartTable, wishlistTable } from "../../configs/schema";
 import { and, eq } from "drizzle-orm";
@@ -13,142 +13,165 @@ import { toast, ToastContainer } from "react-toastify";
 
 const ShoppingCart = () => {
   const navigate = useNavigate();
-  const { products } = useContext(ProductContext);
-  const { userdetails } = useContext(UserContext);
-  // Include wishlist and setWishlist from CartContext
-  const { cart, setCart, wishlist, setWishlist } = useContext(CartContext);
+  const [cartitems, setCartitems] = useState([]);
+  const { products } = useContext(ProductContext); // Retrieve global products
+  const { userdetails } = useContext(UserContext); // Access user data (e.g., orderCount)
 
+  const { cart, setCart, wishlist, setWishlist, getCartitems } =
+    useContext(CartContext);
   // -------------------------------
   // Checkout Handler
   // -------------------------------
   const handleCheckout = () => {
     if (!cart?.length) {
-      alert("Your cart is empty. Please add at least one item before checking out.");
+      alert(
+        "Your cart is empty. Please add at least one item before checking out."
+      );
       return;
     }
-    // Save the cart in localStorage for the checkout page
+    // Save entire cart in localStorage for the checkout page
     localStorage.setItem("selectedItems", JSON.stringify(cart));
     navigate("/checkout");
   };
 
+  useEffect(() => {
+    getCartitems();
+  }, []);
+
+  useEffect(() => {
+    setCartitems(cart);
+  }, [cart]);
+
   // -------------------------------
-  // Add to Cart Functionality
+  // Cart Management Functions
   // -------------------------------
+  let count = 1;
   const addToCart = async (product) => {
-    const existingItem = cart.find((item) => item.product.id === product.id);
-    if (existingItem) {
-      setCart((prevCart) =>
-        prevCart.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+    const tempCartItem = {
+      product,
+      cartId: `temp-${product.id + count++}`, // Temporary cart ID
+      userId: userdetails?.id,
+      quantity: 1, // Set default quantity to 1
+    };
+
+    // Optimistically update the cart
+    setCart((prev) => [...prev, tempCartItem]);
+
+    try {
+      const res1 = await db
+        .insert(addToCartTable)
+        .values({
+          productId: product.id,
+          userId: userdetails?.id,
+        })
+        .returning({
+          cartId: addToCartTable.id,
+          userId: addToCartTable.userId,
+        });
+
+      // Replace temp cart item with actual DB response while preserving quantity
+      setCart((prev) =>
+        prev.map((item) =>
+          item.product.id === product.id && item.userId === userdetails?.id
+            ? { ...item, cartId: res1.cartId }
             : item
         )
       );
+    } catch (error) {
+      // Remove the temp item if DB call fails
+      setCart((prev) =>
+        prev.filter((item) => item.cartId !== tempCartItem.cartId)
+      );
+    }
+  };
+
+  const moveToWishlist = async (prod) => {
+    const product = prod?.product || {};
+    if (!product.id) {
+      toast.error("Invalid product");
+      return;
+    }
+
+    const existingWishlistItem = wishlist.find(
+      (item) => item.productId === product.id
+    );
+    if (existingWishlistItem) {
+      toast.info("Already Wishlisted");
+      return;
     } else {
+      const tempWishlistItem = {
+        productId: product.id,
+        wishlistId: `temp-${product.id + count++}`,
+        userId: userdetails?.id,
+      };
+
+      // Optimistically update the wishlist
+      setWishlist((prev) => [...prev, tempWishlistItem]);
+
       try {
+        // Add to wishlist in DB
         const res = await db
-          .insert(addToCartTable)
+          .insert(wishlistTable)
           .values({
-            productId: product.id,
             userId: userdetails?.id,
+            productId: product.id,
           })
           .returning({
-            cartId: addToCartTable.id,
-            userId: addToCartTable.userId,
+            wishlistId: wishlistTable.id,
+            productId: wishlistTable.productId,
+            userId: wishlistTable.userId,
           });
-        setCart((prevCart) => [
-          ...prevCart,
-          {
-            product: product,
-            quantity: 1,
-            cartId: res.cartId,
-            userId: res.userId,
-          },
-        ]);
+        await db
+          .delete(addToCartTable)
+          .where(
+            and(
+              eq(addToCartTable.productId, product.id),
+              eq(addToCartTable.userId, prod.userId)
+            )
+          );
+
+        if (res.length > 0) {
+          toast.success("Moved to wishlist");
+
+          // Remove from cart only after DB success
+          setCart((prev) =>
+            prev.filter((item) => item.product.id !== product.id)
+          );
+
+          // Replace temp wishlist item with actual DB response
+          setWishlist((prev) =>
+            prev.map((item) =>
+              item.productId === product.id && item.userId === userdetails?.id
+                ? { ...res[0] } // Use the actual DB response
+                : item
+            )
+          );
+        }
       } catch (error) {
-        console.error("Error adding to cart:", error);
+        toast.error("Failed to move to wishlist");
+
+        // Remove the temp item if DB call fails
+        setWishlist((prev) =>
+          prev.filter((item) => item.productId !== tempWishlistItem.productId)
+        );
       }
     }
   };
 
-  // -------------------------------
-  // Move to Wishlist Functionality
-  // -------------------------------
-  const moveToWishlist = async (item, index) => {
-    const product = item.product;
-    // Check if product is already wishlisted
-    const exists = wishlist.some(
-      (wItem) => (wItem.product?.id || wItem.id) === product.id
-    );
-    if (exists) {
-      toast.info("Already wishlisted");
-      return;
-    }
-
-    // Create a temporary wishlist item
-    const tempWishlistItem = {
-      productId: product.id,
-      wishlistId: `temp-${product.id}`,
-      userId: userdetails?.id,
-      product: product,
-    };
-    // Optimistically update wishlist state
-    setWishlist((prev) => [...prev, tempWishlistItem]);
-
-    try {
-      // Add product to wishlist in DB
-      const res = await db
-        .insert(wishlistTable)
-        .values({
-          userId: userdetails?.id,
-          productId: product.id,
-        })
-        .returning({
-          wishlistId: wishlistTable.id,
-          productId: wishlistTable.productId,
-          userId: wishlistTable.userId,
-        });
-      // Remove from cart in DB
-      await db
-        .delete(addToCartTable)
-        .where(
-          and(
-            eq(addToCartTable.productId, product.id),
-            eq(addToCartTable.userId, userdetails?.id)
-          )
-        );
-      toast.success("Moved to wishlist");
-      // Remove item from cart state
-      setCart((prevCart) => prevCart.filter((_, i) => i !== index));
-      // Replace temporary wishlist item with DB response
-      setWishlist((prevWishlist) =>
-        prevWishlist.map((wItem) =>
-          (wItem.product?.id || wItem.productId) === product.id
-            ? { ...res[0], product }
-            : wItem
-        )
-      );
-    } catch (error) {
-      toast.error("Failed to move to wishlist");
-      setWishlist((prev) =>
-        prev.filter((wItem) => (wItem.product?.id || wItem.productId) !== product.id)
-      );
-      console.error("Error moving to wishlist:", error);
-    }
-  };
-
-  // -------------------------------
-  // Other Cart Management Functions
-  // -------------------------------
-  const updateQuantity = (index, change) => {
+  function updateQuantity(index, change) {
     setCart((prevCart) =>
-      prevCart.map((item, i) =>
-        i === index
-          ? { ...item, quantity: Math.max(1, item.quantity + change) }
-          : item
+      prevCart?.map(
+        (item, i) =>
+          i === index
+            ? {
+                ...item, // Preserve the item structure (itemid, userid, etc.)
+                // Preserve product properties
+                quantity: Math.max(1, item.quantity + change), // Update quantity, ensuring it’s at least 1
+              }
+            : item // If not the selected item, return it as-is
       )
     );
-  };
+  }
 
   const removeFromCart = async (item, index) => {
     try {
@@ -160,10 +183,11 @@ const ShoppingCart = () => {
             eq(addToCartTable.productId, item?.product?.id)
           )
         );
-      setCart((prevCart) => prevCart.filter((_, i) => i !== index));
-      console.log("Remove response:", res);
+
+      setCart((prevCart) => prevCart?.filter((_, i) => i !== index));
+      console.log(res);
     } catch (error) {
-      console.error("Error removing from cart:", error);
+      console.log(error);
     }
   };
 
@@ -171,18 +195,16 @@ const ShoppingCart = () => {
     try {
       await db
         .delete(addToCartTable)
-        .where(eq(userdetails?.id, addToCartTable.userId));
+        .where(eq(userdetails?.id, addToCartTable?.userId));
       setCart([]);
-    } catch (error) {
-      console.error("Error clearing cart:", error);
-    }
+    } catch (error) {}
   };
 
   // -------------------------------
-  // Price Calculations
+  // Price Calculation Variables
   // -------------------------------
   const totalOriginal = cart?.reduce(
-    (acc, item) => acc + (item?.product?.oprice || 0) * item.quantity,
+    (acc, item) => acc + (item?.product?.oprice || 0) * (item?.quantity || 0),
     0
   );
 
@@ -193,32 +215,33 @@ const ShoppingCart = () => {
         (item?.product?.oprice || 0) -
           ((item?.product?.discount || 0) / 100) * (item?.product?.oprice || 0)
       ) *
-        item.quantity,
+        (item?.quantity || 0),
     0
   );
 
   const finalPrice = totalDiscounted;
 
   // -------------------------------
-  // Render Remaining Products (Explore More)
+  // Render Remaining Products Section
   // -------------------------------
   const renderRemainingProducts = () => {
     return products
       ?.filter(
         (product) =>
-          !cart?.some((cartItem) => cartItem?.product?.id === product.id)
+          !cart?.some((cartItem) => cartItem?.product.id === product?.id)
       )
       .map((product) => {
         const discountedPrice = Math.trunc(
-          product.oprice - (product.oprice * product.discount) / 100
+          (product?.oprice || 0) -
+            ((product?.oprice || 0) * (product?.discount || 0)) / 100
         );
 
         return (
-          <div key={product.id} className="remaining-product-item">
-            <img src={product.imageurl} alt={product.name} />
+          <div key={product?.name} className="remaining-product-item">
+            <img src={product?.imageurl} alt="Product" />
             <div className="r-product-title">
-              <h3>{product.name}</h3>
-              <span>{product.size} ml</span>
+              <h3>{product?.name}</h3>
+              <span>{product?.size} ml</span>
             </div>
             <div className="product-price">
               <div className="price">
@@ -229,11 +252,11 @@ const ShoppingCart = () => {
                   className="old-price"
                   style={{ color: "lightgray", textDecoration: "line-through" }}
                 >
-                  (₹{product.oprice})
+                  (₹{product?.oprice})
                 </span>
               </div>
               <span className="discount" style={{ color: "blue" }}>
-                {product.discount}% Off
+                {product?.discount}% Off
               </span>
             </div>
             <button className="add-to-cart" onClick={() => addToCart(product)}>
@@ -250,14 +273,14 @@ const ShoppingCart = () => {
   return (
     <>
       <main className="main-container">
-        <div className="absolute">
+        <div className=" absolute">
           <ToastContainer />
         </div>
         <h1 className="cart-title">Your Shopping Cart</h1>
         <div className="cart-item-summary-container">
           {/* ---------- Cart Items List ---------- */}
           <div className="cart-items-box">
-            {cart?.map((item, index) => (
+            {cartitems?.map((item, index) => (
               <div key={index} className="cart-item">
                 <img src={item?.product?.imageurl} alt={item?.product?.name} />
                 <div className="product-title">
@@ -265,11 +288,17 @@ const ShoppingCart = () => {
                   <span>{item?.product?.size} ml</span>
                 </div>
                 <div className="quantity-controls">
-                  <button className="decrease" onClick={() => updateQuantity(index, -1)}>
+                  <button
+                    className="decrease"
+                    onClick={() => updateQuantity(index, -1)}
+                  >
                     -
                   </button>
-                  <span className="item-quantity">{item.quantity}</span>
-                  <button className="increase" onClick={() => updateQuantity(index, 1)}>
+                  <span className="item-quantity">{item?.quantity}</span>
+                  <button
+                    className="increase"
+                    onClick={() => updateQuantity(index, 1)}
+                  >
                     +
                   </button>
                 </div>
@@ -277,19 +306,30 @@ const ShoppingCart = () => {
                   <span style={{ color: "green" }}>
                     ₹{" "}
                     {Math.floor(
-                      item?.product?.oprice -
+                      (item?.product?.oprice || 0) -
                         ((item?.product?.discount || 0) / 100) *
                           (item?.product?.oprice || 0)
                     )}
                   </span>
-                  <span style={{ color: "lightgray", textDecoration: "line-through" }}>
+                  <span
+                    style={{
+                      color: "lightgray",
+                      textDecoration: "line-through",
+                    }}
+                  >
                     ₹{item?.product?.oprice}
                   </span>
                 </div>
-                <button className="remove" onClick={() => removeFromCart(item, index)}>
+                <button
+                  className="remove"
+                  onClick={() => removeFromCart(item, index)}
+                >
                   Remove
                 </button>
-                <button className="move-to-wishlist" onClick={() => moveToWishlist(item, index)}>
+                <button
+                  className="move-to-wishlist"
+                  onClick={() => moveToWishlist(item, index)}
+                >
                   Move to Wishlist
                 </button>
               </div>
@@ -302,7 +342,11 @@ const ShoppingCart = () => {
               <button id="clear-cart" onClick={clearCart}>
                 Clear Cart
               </button>
-              <button id="checkout-button" disabled={!cart?.length} onClick={handleCheckout}>
+              <button
+                id="checkout-button"
+                disabled={!cart?.length}
+                onClick={handleCheckout}
+              >
                 Checkout
               </button>
             </div>
