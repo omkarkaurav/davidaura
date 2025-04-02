@@ -7,18 +7,20 @@ import { db } from "../../configs";
 import { addToCartTable, wishlistTable } from "../../configs/schema";
 import { eq, and } from "drizzle-orm";
 import { UserContext } from "../contexts/UserContext";
+import { ToastContainer, toast } from "react-toastify";
 
-const Wishlist = ({ cart, setCart }) => {
-  const { wishlist, setWishlist } = useContext(CartContext);
+const Wishlist = () => {
+  const { wishlist, setWishlist, cart, setCart } = useContext(CartContext);
   const { userdetails } = useContext(UserContext);
 
-  // Function to prevent duplicate items in wishlist
+  // Function to prevent duplicate items in wishlist (if needed)
   const addToWishlist = (newItem) => {
     setWishlist((prevWishlist) => {
-      // Check if product already exists
-      const exists = prevWishlist.some((item) => (item.product?.id || item.id) === newItem.id);
+      const exists = prevWishlist.some(
+        (item) => (item.product?.id || item.id) === newItem.id
+      );
       if (!exists) {
-        return [...prevWishlist, newItem]; // Only add if it's not a duplicate
+        return [...prevWishlist, newItem];
       }
       return prevWishlist;
     });
@@ -29,7 +31,7 @@ const Wishlist = ({ cart, setCart }) => {
     try {
       const product = wishlistItem.product || wishlistItem;
 
-      // Add to cart in DB
+      // Add item to cart in DB
       const [res1] = await db
         .insert(addToCartTable)
         .values({
@@ -41,6 +43,7 @@ const Wishlist = ({ cart, setCart }) => {
           userId: addToCartTable.userId,
         });
 
+      // Update cart state immediately
       setCart((prevCart) => [
         ...prevCart,
         {
@@ -54,7 +57,7 @@ const Wishlist = ({ cart, setCart }) => {
         },
       ]);
 
-      // Remove from wishlist in DB
+      // Remove the item from the wishlist in the database
       await db
         .delete(wishlistTable)
         .where(
@@ -64,11 +67,16 @@ const Wishlist = ({ cart, setCart }) => {
           )
         );
 
-      // Update state
+      // Update wishlist state immediately
       setWishlist((prevWishlist) =>
-        prevWishlist.filter((item) => (item.productId || item.id) !== product.id)
+        prevWishlist.filter(
+          (item) => (item.product?.id || item.id) !== product.id
+        )
       );
+
+      toast.success("Item moved to cart successfully!");
     } catch (error) {
+      toast.error("Failed to move item to cart");
       console.error("Error moving to cart:", error);
     }
   };
@@ -90,9 +98,14 @@ const Wishlist = ({ cart, setCart }) => {
 
       // Update state
       setWishlist((prevWishlist) =>
-        prevWishlist.filter((item) => (item.productId || item.id) !== product.id)
+        prevWishlist.filter(
+          (item) => (item.product?.id || item.id) !== product.id
+        )
       );
+
+      toast.success("Item removed from wishlist");
     } catch (error) {
+      toast.error("Failed to remove item");
       console.error("Error removing from wishlist:", error);
     }
   };
@@ -100,26 +113,24 @@ const Wishlist = ({ cart, setCart }) => {
   // Clear entire wishlist permanently
   const clearWishlist = async () => {
     try {
-      // Delete all wishlist items for this user in DB
       await db
         .delete(wishlistTable)
         .where(eq(wishlistTable.userId, userdetails?.id));
 
-      // Update state
       setWishlist([]);
+      toast.success("Wishlist cleared");
     } catch (error) {
+      toast.error("Failed to clear wishlist");
       console.error("Error clearing wishlist:", error);
     }
   };
 
   return (
     <div className="main-container">
-      <div className=" absolute">
-        {" "}
+      <div className="absolute">
         <ToastContainer />
       </div>
       <h2 className="w-title">MY WISHLIST</h2>
-      <div id="wishlistitems-container">
       <div id="wishlistitems-container">
         <div id="wishlistitems-items">
           {wishlist.length === 0 ? (
@@ -144,7 +155,9 @@ const Wishlist = ({ cart, setCart }) => {
                   </div>
                   <div className="item-price">
                     <span>
-                      <strong style={{ color: "green" }}>₹{discountedPrice}</strong>
+                      <strong style={{ color: "green" }}>
+                        ₹{discountedPrice}
+                      </strong>
                       <del style={{ color: "lightgray" }}>₹{item.oprice}</del>
                     </span>
                     <span style={{ color: "blue" }}>{item.discount}% Off</span>

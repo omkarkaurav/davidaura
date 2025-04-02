@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import "../style/cart.css";
-import { ProductContext } from "../contexts/productContext"; // Global product state
-import { UserContext } from "../contexts/UserContext"; // User data context
+import { ProductContext } from "../contexts/productContext"; // Global products
+import { UserContext } from "../contexts/UserContext"; // User details
 import { db } from "../../configs";
 import { addToCartTable, wishlistTable } from "../../configs/schema";
 import { and, eq } from "drizzle-orm";
@@ -13,9 +13,10 @@ import { toast, ToastContainer } from "react-toastify";
 
 const ShoppingCart = () => {
   const navigate = useNavigate();
-  const { products } = useContext(ProductContext); // Global products
-  const { userdetails } = useContext(UserContext); // User details
-  const { cart, setCart } = useContext(CartContext);
+  const { products } = useContext(ProductContext);
+  const { userdetails } = useContext(UserContext);
+  // Include wishlist and setWishlist from CartContext
+  const { cart, setCart, wishlist, setWishlist } = useContext(CartContext);
 
   // -------------------------------
   // Checkout Handler
@@ -30,20 +31,12 @@ const ShoppingCart = () => {
     navigate("/checkout");
   };
 
-  useEffect(() => {
-    if (cart?.length) {
-      setCart(cart);
-    }
-  }, [cart, setCart]);
-
   // -------------------------------
-  // Add to Cart Functionality (Match Product ID)
+  // Add to Cart Functionality
   // -------------------------------
   const addToCart = async (product) => {
-    // Check if the product already exists in the cart by matching product.id
     const existingItem = cart.find((item) => item.product.id === product.id);
     if (existingItem) {
-      // Increase quantity if it already exists
       setCart((prevCart) =>
         prevCart.map((item) =>
           item.product.id === product.id
@@ -51,9 +44,7 @@ const ShoppingCart = () => {
             : item
         )
       );
-      // Optionally: update the database quantity if needed.
     } else {
-      // Add new product to the database and then update the cart state
       try {
         const res = await db
           .insert(addToCartTable)
@@ -65,14 +56,84 @@ const ShoppingCart = () => {
             cartId: addToCartTable.id,
             userId: addToCartTable.userId,
           });
-        // Update local cart state with full product details
         setCart((prevCart) => [
           ...prevCart,
-          { product: product, quantity: 1, cartId: res.cartId, userId: res.userId },
+          {
+            product: product,
+            quantity: 1,
+            cartId: res.cartId,
+            userId: res.userId,
+          },
         ]);
       } catch (error) {
         console.error("Error adding to cart:", error);
       }
+    }
+  };
+
+  // -------------------------------
+  // Move to Wishlist Functionality
+  // -------------------------------
+  const moveToWishlist = async (item, index) => {
+    const product = item.product;
+    // Check if product is already wishlisted
+    const exists = wishlist.some(
+      (wItem) => (wItem.product?.id || wItem.id) === product.id
+    );
+    if (exists) {
+      toast.info("Already wishlisted");
+      return;
+    }
+
+    // Create a temporary wishlist item
+    const tempWishlistItem = {
+      productId: product.id,
+      wishlistId: `temp-${product.id}`,
+      userId: userdetails?.id,
+      product: product,
+    };
+    // Optimistically update wishlist state
+    setWishlist((prev) => [...prev, tempWishlistItem]);
+
+    try {
+      // Add product to wishlist in DB
+      const res = await db
+        .insert(wishlistTable)
+        .values({
+          userId: userdetails?.id,
+          productId: product.id,
+        })
+        .returning({
+          wishlistId: wishlistTable.id,
+          productId: wishlistTable.productId,
+          userId: wishlistTable.userId,
+        });
+      // Remove from cart in DB
+      await db
+        .delete(addToCartTable)
+        .where(
+          and(
+            eq(addToCartTable.productId, product.id),
+            eq(addToCartTable.userId, userdetails?.id)
+          )
+        );
+      toast.success("Moved to wishlist");
+      // Remove item from cart state
+      setCart((prevCart) => prevCart.filter((_, i) => i !== index));
+      // Replace temporary wishlist item with DB response
+      setWishlist((prevWishlist) =>
+        prevWishlist.map((wItem) =>
+          (wItem.product?.id || wItem.productId) === product.id
+            ? { ...res[0], product }
+            : wItem
+        )
+      );
+    } catch (error) {
+      toast.error("Failed to move to wishlist");
+      setWishlist((prev) =>
+        prev.filter((wItem) => (wItem.product?.id || wItem.productId) !== product.id)
+      );
+      console.error("Error moving to wishlist:", error);
     }
   };
 
@@ -189,14 +250,14 @@ const ShoppingCart = () => {
   return (
     <>
       <main className="main-container">
-        <div className=" absolute">
+        <div className="absolute">
           <ToastContainer />
         </div>
         <h1 className="cart-title">Your Shopping Cart</h1>
         <div className="cart-item-summary-container">
           {/* ---------- Cart Items List ---------- */}
           <div className="cart-items-box">
-            {cartitems?.map((item, index) => (
+            {cart?.map((item, index) => (
               <div key={index} className="cart-item">
                 <img src={item?.product?.imageurl} alt={item?.product?.name} />
                 <div className="product-title">
@@ -221,14 +282,15 @@ const ShoppingCart = () => {
                           (item?.product?.oprice || 0)
                     )}
                   </span>
-                  <span
-                    style={{ color: "lightgray", textDecoration: "line-through" }}
-                  >
+                  <span style={{ color: "lightgray", textDecoration: "line-through" }}>
                     ₹{item?.product?.oprice}
                   </span>
                 </div>
                 <button className="remove" onClick={() => removeFromCart(item, index)}>
                   Remove
+                </button>
+                <button className="move-to-wishlist" onClick={() => moveToWishlist(item, index)}>
+                  Move to Wishlist
                 </button>
               </div>
             ))}
@@ -240,11 +302,7 @@ const ShoppingCart = () => {
               <button id="clear-cart" onClick={clearCart}>
                 Clear Cart
               </button>
-              <button
-                id="checkout-button"
-                disabled={!cart?.length}
-                onClick={handleCheckout}
-              >
+              <button id="checkout-button" disabled={!cart?.length} onClick={handleCheckout}>
                 Checkout
               </button>
             </div>

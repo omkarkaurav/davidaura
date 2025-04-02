@@ -10,9 +10,8 @@ import { db } from "../../configs";
 import {
   addToCartTable,
   wishlistTable,
-  productsTable,  // Import products table to fetch fresh details
+  productsTable, // Import products table to fetch fresh details
 } from "../../configs/schema";
-import { useUser } from "@clerk/clerk-react";
 import { eq, and } from "drizzle-orm";
 import { UserContext } from "../contexts/UserContext";
 import { CartContext } from "../contexts/CartContext";
@@ -201,16 +200,16 @@ const Products = () => {
         .select()
         .from(productsTable)
         .where(eq(productsTable.id, product.id));
-  
+
       if (!latestProducts || latestProducts.length === 0) {
         console.error("Product not found in DB");
         return;
       }
       const latestProduct = latestProducts[0];
-  
+
       // Check if product is already in cart
       const existingCartItem = cart.find((item) => item.product.id === latestProduct.id);
-  
+
       if (existingCartItem) {
         // Remove from cart in the database
         await db
@@ -221,7 +220,7 @@ const Products = () => {
               eq(addToCartTable.userId, userdetails?.id)
             )
           );
-  
+
         // Remove from state
         setCart((prevCart) => prevCart.filter((item) => item.product.id !== latestProduct.id));
       } else {
@@ -236,7 +235,7 @@ const Products = () => {
             cartId: addToCartTable.id,
             userId: addToCartTable.userId,
           });
-  
+
         // Ensure no duplicates before updating state
         setCart((prevCart) => {
           const isAlreadyAdded = prevCart.some((item) => item.product.id === latestProduct.id);
@@ -247,48 +246,37 @@ const Products = () => {
       console.error("Error toggling cart:", error);
     }
   };
-  
 
   // -------------------------------
-  // Toggle Wishlist: Add or Remove Product with Matched Details
+  // Toggle Wishlist: Add or Remove Product
   // -------------------------------
   const toggleWishlist = async (product) => {
-    const tempWishlistItem = {
-      productId: product.id,
-      wishlistId: `temp-${product.id + count++}`, // Temporary wishlist ID
-      userId: userdetails?.id,
-    };
-
-    // Optimistically update the wishlist
-    setWishlist((prev) => [...prev, tempWishlistItem]);
-
     try {
-      // Fetch latest product details from the database
-      const latestProducts = await db
-        .select()
-        .from(productsTable)
-        .where(eq(productsTable.id, product.id));
-  
-      if (!latestProducts || latestProducts.length === 0) return;
-      const latestProduct = latestProducts[0];
-  
-      // Check if product is already in the wishlist
-      const existingWishlistItem = wishlist.find((item) => item.productId === latestProduct.id);
-  
-      if (existingWishlistItem) {
+      // Check if product is already in wishlist
+      const exists = wishlist.some((item) => item.productId === product.id);
+      if (exists) {
         // Remove from wishlist in the database
         await db
           .delete(wishlistTable)
           .where(
             and(
               eq(wishlistTable.userId, userdetails?.id),
-              eq(wishlistTable.productId, latestProduct.id)
+              eq(wishlistTable.productId, product.id)
             )
           );
-  
-        // Remove from state
-        setWishlist((prevWishlist) => prevWishlist.filter((item) => item.productId !== latestProduct.id));
+        // Update state by removing product
+        setWishlist((prevWishlist) =>
+          prevWishlist.filter((item) => item.productId !== product.id)
+        );
       } else {
+        // Fetch latest product details from DB (optional step)
+        const latestProducts = await db
+          .select()
+          .from(productsTable)
+          .where(eq(productsTable.id, product.id));
+        if (!latestProducts || latestProducts.length === 0) return;
+        const latestProduct = latestProducts[0];
+
         // Add to wishlist in the database
         const res = await db
           .insert(wishlistTable)
@@ -301,22 +289,16 @@ const Products = () => {
             productId: wishlistTable.productId,
             userId: wishlistTable.userId,
           });
-  
-        // Ensure no duplicates before updating state
-        setWishlist((prevWishlist) => {
-          const isAlreadyAdded = prevWishlist.some((item) => item.productId === latestProduct.id);
-          return isAlreadyAdded ? prevWishlist : [...prevWishlist, { ...latestProduct, productId: latestProduct.id }];
-        });
+        // Update state with the new wishlist item
+        setWishlist((prevWishlist) => [
+          ...prevWishlist,
+          { ...res[0], productId: latestProduct.id },
+        ]);
       }
     } catch (error) {
-      // console.error("Error toggling wishlist:", error);
-      // Remove the temp item if DB call fails
-      setWishlist((prev) =>
-        prev.filter((item) => item.wishlistId !== tempWishlistItem.wishlistId)
-      );
+      console.error("Error toggling wishlist:", error);
     }
   };
-  
 
   const handleSlideClick = (product) => {
     setModalProduct(product);
@@ -339,7 +321,7 @@ const Products = () => {
             product.oprice - (product.oprice * product.discount) / 100
           );
           const inCart = cart.some((item) => item.product.id === product.id);
-          const inWishlist = wishlist.some((item) => item.productId == product.id);
+          const inWishlist = wishlist.some((item) => item.productId === product.id);
 
           return (
             <div
