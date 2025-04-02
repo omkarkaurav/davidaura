@@ -51,6 +51,7 @@ const ShoppingCart = () => {
       product,
       cartId: `temp-${product.id + count++}`, // Temporary cart ID
       userId: userdetails?.id,
+      quantity: 1, // Set default quantity to 1
     };
 
     // Optimistically update the cart
@@ -68,7 +69,7 @@ const ShoppingCart = () => {
           userId: addToCartTable.userId,
         });
 
-      // Replace temp cart item with actual DB response
+      // Replace temp cart item with actual DB response while preserving quantity
       setCart((prev) =>
         prev.map((item) =>
           item.product.id === product.id && item.userId === userdetails?.id
@@ -273,7 +274,6 @@ const ShoppingCart = () => {
     <>
       <main className="main-container">
         <div className=" absolute">
-          {" "}
           <ToastContainer />
         </div>
         <h1 className="cart-title">Your Shopping Cart</h1>
