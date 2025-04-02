@@ -114,7 +114,12 @@ const Wishlist = ({ cart, setCart }) => {
 
   return (
     <div className="main-container">
+      <div className=" absolute">
+        {" "}
+        <ToastContainer />
+      </div>
       <h2 className="w-title">MY WISHLIST</h2>
+      <div id="wishlistitems-container">
       <div id="wishlistitems-container">
         <div id="wishlistitems-items">
           {wishlist.length === 0 ? (
@@ -127,6 +132,7 @@ const Wishlist = ({ cart, setCart }) => {
               const discountedPrice = Math.trunc(
                 item.oprice - (item.oprice * item.discount) / 100
               );
+
               return (
                 <div key={item.id} className="wishlistitems-item">
                   <img src={item.imageurl} alt={item.name} className="w-52" />

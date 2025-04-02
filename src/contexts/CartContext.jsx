@@ -19,12 +19,14 @@ export const CartProvider = ({ children }) => {
   const { userdetails } = useContext(UserContext);
   // You could also add logic here for loading/saving cart data from localStorage
   const getCartitems = async () => {
+    if (!userdetails) return;
     try {
       const res = await db
         .select({
           product: productsTable,
           userId: addToCartTable.userId,
           cartId: addToCartTable.id,
+          quantity: addToCartTable.quantity,
         })
         .from(addToCartTable)
         .innerJoin(
@@ -33,6 +35,7 @@ export const CartProvider = ({ children }) => {
         )
         .where(eq(addToCartTable.userId, userdetails.id));
       setCart(res);
+      console.log(res);
       // console.log(res);
     } catch (error) {
       console.log(error);
@@ -40,6 +43,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const getwishlist = async () => {
+    if (!userdetails) return;
     try {
       const res = await db
         .select({
@@ -74,6 +78,8 @@ export const CartProvider = ({ children }) => {
         setCouponDiscount,
         selectedItems,
         setSelectedItems,
+        getwishlist,
+        getCartitems,
       }}
     >
       {children}

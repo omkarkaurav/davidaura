@@ -6,11 +6,12 @@ import "../style/cart.css";
 import { ProductContext } from "../contexts/productContext"; // Global product state
 import { UserContext } from "../contexts/UserContext"; // User data context
 import { db } from "../../configs";
-import { addToCartTable } from "../../configs/schema";
+import { addToCartTable, wishlistTable } from "../../configs/schema";
 import { and, eq } from "drizzle-orm";
 import { CartContext } from "../contexts/CartContext";
+import { toast, ToastContainer } from "react-toastify";
 
-const ShoppingCart = ({ wishlist, setWishlist }) => {
+const ShoppingCart = () => {
   const navigate = useNavigate();
   const { products } = useContext(ProductContext); // Global products
   const { userdetails } = useContext(UserContext); // User details
@@ -188,11 +189,14 @@ const ShoppingCart = ({ wishlist, setWishlist }) => {
   return (
     <>
       <main className="main-container">
+        <div className=" absolute">
+          <ToastContainer />
+        </div>
         <h1 className="cart-title">Your Shopping Cart</h1>
         <div className="cart-item-summary-container">
           {/* ---------- Cart Items List ---------- */}
           <div className="cart-items-box">
-            {cart?.map((item, index) => (
+            {cartitems?.map((item, index) => (
               <div key={index} className="cart-item">
                 <img src={item?.product?.imageurl} alt={item?.product?.name} />
                 <div className="product-title">

@@ -253,6 +253,15 @@ const Products = () => {
   // Toggle Wishlist: Add or Remove Product with Matched Details
   // -------------------------------
   const toggleWishlist = async (product) => {
+    const tempWishlistItem = {
+      productId: product.id,
+      wishlistId: `temp-${product.id + count++}`, // Temporary wishlist ID
+      userId: userdetails?.id,
+    };
+
+    // Optimistically update the wishlist
+    setWishlist((prev) => [...prev, tempWishlistItem]);
+
     try {
       // Fetch latest product details from the database
       const latestProducts = await db
@@ -300,7 +309,11 @@ const Products = () => {
         });
       }
     } catch (error) {
-      console.error("Error toggling wishlist:", error);
+      // console.error("Error toggling wishlist:", error);
+      // Remove the temp item if DB call fails
+      setWishlist((prev) =>
+        prev.filter((item) => item.wishlistId !== tempWishlistItem.wishlistId)
+      );
     }
   };
   

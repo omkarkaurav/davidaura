@@ -12,7 +12,13 @@ import { db } from "../../configs/index";
 import { useUser } from "@clerk/clerk-react";
 import { eq } from "drizzle-orm";
 import { useNavigate } from "react-router-dom";
-import { ordersTable, productsTable, usersTable } from "../../configs/schema";
+import {
+  addToCartTable,
+  orderItemsTable,
+  ordersTable,
+  productsTable,
+  usersTable,
+} from "../../configs/schema";
 import ImageUploadModal from "./ImageUploadModal";
 import { UserContext } from "../contexts/UserContext";
 import { toast, ToastContainer } from "react-toastify";
@@ -41,7 +47,7 @@ const AdminPanel = () => {
   const [editingCoupon, setEditingCoupon] = useState(null);
   const navigate = useNavigate();
   // Get orders from OrderContext
-  const { orders, setOrders } = useContext(OrderContext);
+  const { orders, setOrders, getorders } = useContext(OrderContext);
   // const {userdetails}=useContext(UserContext)
 
   // Get queries from ContactContext
@@ -51,6 +57,7 @@ const AdminPanel = () => {
   const [orderStatusTab, setOrderStatusTab] = useState("All");
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [userkiDetails, setUserkiDetails] = useState([]);
 
   // New state for user search (Users tab)
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -68,6 +75,7 @@ const AdminPanel = () => {
         .select()
         .from(usersTable)
         .where(eq(usersTable.phone, user?.primaryPhoneNumber?.phoneNumber));
+      setUserkiDetails(res[0]);
       res[0].role != "admin" && navigate("/");
     } catch (error) {
       console.log(error);
@@ -77,6 +85,9 @@ const AdminPanel = () => {
   useEffect(() => {
     user && userdetails();
   }, [user]);
+  useEffect(() => {
+    getorders();
+  }, []);
 
   // --- Product Functions ---
   const handleProductUpdate = async (updatedProduct) => {
@@ -113,18 +124,36 @@ const AdminPanel = () => {
   };
 
   const handleProductDelete = async (productId) => {
+    if (userkiDetails?.role != "admin") return;
+    console.log(productId);
     setLoading(true);
     if (window.confirm("Are you sure you want to delete this product?")) {
       setProducts((prevProducts) =>
         prevProducts.filter((p) => p.id !== productId)
       );
       try {
-        const res = await db
-          .delete(productsTable)
-          .where(eq(productsTable?.id, productId));
+        try {
+          await db
+            .delete(orderItemsTable)
+            .where(eq(orderItemsTable.productId, productId));
+
+          // Step 2: Delete related cart items
+          await db
+            .delete(addToCartTable)
+            .where(eq(addToCartTable.productId, productId));
+
+          // Step 3: Now, safely delete the product
+          await db.delete(productsTable).where(eq(productsTable.id, productId));
+
+          console.log("Product and related cart entries deleted successfully");
+        } catch (error) {
+          console.error("Error deleting product:", error);
+        }
 
         setLoading(false);
-      } catch (error) {}
+      } catch (error) {
+        console.log(error);
+      }
     }
   };
 
