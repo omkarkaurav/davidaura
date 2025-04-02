@@ -1,133 +1,157 @@
 // src/pages/Wishlist.js
 
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext } from "react";
 import "../style/wishlist.css";
 import { CartContext } from "../contexts/CartContext";
+import { db } from "../../configs";
+import { addToCartTable, wishlistTable } from "../../configs/schema";
+import { eq, and } from "drizzle-orm";
+import { UserContext } from "../contexts/UserContext";
 
-/**
- * Wishlist Component
- * Renders a list of wishlistitems items with options to remove an item,
- * move an item to the cart, or clear the entire wishlistitems.
- *
- * Props:
- * - wishlistitems: Array of wishlistitems items.
- * - setWishlistitems: Function to update the wishlistitems.
- * - cart: Array of cart items.
- * - setCart: Function to update the cart.
- */
 const Wishlist = ({ cart, setCart }) => {
-  const [wishlistitems, setWishlistitems] = useState([]);
-  const { wishlist } = useContext(CartContext);
-  // -----------------------------------------------------------
-  // Function: moveToCart
-  // Adds a wishlistitems item to the cart and removes it from the wishlistitems.
-  // -----------------------------------------------------------
+  const { wishlist, setWishlist } = useContext(CartContext);
+  const { userdetails } = useContext(UserContext);
 
-  useEffect(() => {
-    wishlist && setWishlistitems(wishlist);
-  }, [wishlist]);
-  const moveToCart = (wishlistitem, index) => {
-    const item = wishlistitems[index]; // Get the item from the wishlistitems.
-    if (!item) return;
-
-    // Update cart state.
-    setCart((prevCart) => {
-      // If the cart is empty, add the item directly.
-      if (prevCart.length === 0) {
-        return [{ ...item, quantity: 1 }];
+  // Function to prevent duplicate items in wishlist
+  const addToWishlist = (newItem) => {
+    setWishlist((prevWishlist) => {
+      // Check if product already exists
+      const exists = prevWishlist.some((item) => (item.product?.id || item.id) === newItem.id);
+      if (!exists) {
+        return [...prevWishlist, newItem]; // Only add if it's not a duplicate
       }
-      // Check if the item already exists in the cart.
-      const existingItem = prevCart.find(
-        (cartItem) => cartItem.name === item.name
-      );
-      if (existingItem) {
-        // Increase quantity if it exists.
-        return prevCart.map((cartItem) =>
-          cartItem.name === item.name
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
-      } else {
-        // Otherwise, add the new item with initial quantity of 1.
-        return [...prevCart, { ...item, quantity: 1 }];
-      }
+      return prevWishlist;
     });
-
-    // Remove the item from the wishlistitems.
-    setWishlistitems((prevWishlist) =>
-      prevWishlist.filter((_, i) => i !== index)
-    );
   };
 
-  // -----------------------------------------------------------
-  // Function: removeWishlistItem
-  // Removes a single item from the wishlistitems.
-  // -----------------------------------------------------------
-  const removeWishlistItem = (index) => {
-    setWishlistitems((prevWishlist) =>
-      prevWishlist.filter((_, i) => i !== index)
-    );
+  // Move item to cart and remove from wishlist
+  const moveToCart = async (wishlistItem) => {
+    try {
+      const product = wishlistItem.product || wishlistItem;
+
+      // Add to cart in DB
+      const [res1] = await db
+        .insert(addToCartTable)
+        .values({
+          productId: product.id,
+          userId: userdetails?.id,
+        })
+        .returning({
+          cartId: addToCartTable.id,
+          userId: addToCartTable.userId,
+        });
+
+      setCart((prevCart) => [
+        ...prevCart,
+        {
+          product: { ...product },
+          cartId: res1.cartId,
+          userId: res1.userId,
+          quantity: 1,
+          dprice: Math.trunc(
+            product.oprice - (product.oprice * product.discount) / 100
+          ),
+        },
+      ]);
+
+      // Remove from wishlist in DB
+      await db
+        .delete(wishlistTable)
+        .where(
+          and(
+            eq(wishlistTable.userId, userdetails?.id),
+            eq(wishlistTable.productId, product.id)
+          )
+        );
+
+      // Update state
+      setWishlist((prevWishlist) =>
+        prevWishlist.filter((item) => (item.productId || item.id) !== product.id)
+      );
+    } catch (error) {
+      console.error("Error moving to cart:", error);
+    }
   };
 
-  // -----------------------------------------------------------
-  // Function: clearWishlist
-  // Clears the entire wishlistitems.
-  // -----------------------------------------------------------
-  const clearWishlist = () => {
-    setWishlistitems([]);
+  // Remove an item from wishlist permanently
+  const removeWishlistItem = async (wishlistItem) => {
+    try {
+      const product = wishlistItem.product || wishlistItem;
+
+      // Delete from database
+      await db
+        .delete(wishlistTable)
+        .where(
+          and(
+            eq(wishlistTable.userId, userdetails?.id),
+            eq(wishlistTable.productId, product.id)
+          )
+        );
+
+      // Update state
+      setWishlist((prevWishlist) =>
+        prevWishlist.filter((item) => (item.productId || item.id) !== product.id)
+      );
+    } catch (error) {
+      console.error("Error removing from wishlist:", error);
+    }
   };
 
-  // -----------------------------------------------------------
-  // Render the Wishlist UI
-  // -----------------------------------------------------------
+  // Clear entire wishlist permanently
+  const clearWishlist = async () => {
+    try {
+      // Delete all wishlist items for this user in DB
+      await db
+        .delete(wishlistTable)
+        .where(eq(wishlistTable.userId, userdetails?.id));
+
+      // Update state
+      setWishlist([]);
+    } catch (error) {
+      console.error("Error clearing wishlist:", error);
+    }
+  };
+
   return (
     <div className="main-container">
       <h2 className="w-title">MY WISHLIST</h2>
-      <div id="wishlistitems-container   ">
+      <div id="wishlistitems-container">
         <div id="wishlistitems-items">
-          {wishlistitems.length === 0 ? (
+          {wishlist.length === 0 ? (
             <div id="empty-wishlistitems-message" style={{ color: "black" }}>
               Your Wishlist is empty.
             </div>
           ) : (
-            wishlistitems?.map((wishlisti, index) => {
-              // console.log(item);
-              const item = wishlisti.product || {};
-              // Calculate discounted price.
+            wishlist.map((wishlistItem) => {
+              const item = wishlistItem.product || wishlistItem;
               const discountedPrice = Math.trunc(
                 item.oprice - (item.oprice * item.discount) / 100
               );
               return (
                 <div key={item.id} className="wishlistitems-item">
-                  {/* Product Image */}
-                  <img src={item.imageurl} alt={item.name} className="  w-52" />
-                  {/* Product Title & Size */}
+                  <img src={item.imageurl} alt={item.name} className="w-52" />
                   <div className="item-title">
                     <h3>{item.name}</h3>
                     <span style={{ fontWeight: 100, fontSize: "1rem" }}>
                       {item.size}ml
                     </span>
                   </div>
-                  {/* Pricing Details */}
                   <div className="item-price">
                     <span>
-                      <strong style={{ color: "green" }}>
-                        ₹{discountedPrice}
-                      </strong>
+                      <strong style={{ color: "green" }}>₹{discountedPrice}</strong>
                       <del style={{ color: "lightgray" }}>₹{item.oprice}</del>
                     </span>
                     <span style={{ color: "blue" }}>{item.discount}% Off</span>
                   </div>
-                  {/* Action Buttons */}
                   <button
                     className="move-to-cart"
-                    onClick={() => moveToCart(wishlisti, index)}
+                    onClick={() => moveToCart(wishlistItem)}
                   >
                     Move to Cart
                   </button>
                   <button
                     className="remove-wishlistitems"
-                    onClick={() => removeWishlistItem(index)}
+                    onClick={() => removeWishlistItem(wishlistItem)}
                   >
                     Remove
                   </button>
@@ -135,8 +159,7 @@ const Wishlist = ({ cart, setCart }) => {
               );
             })
           )}
-          {/* Clear Wishlist Button: only shown if there are items */}
-          {wishlistitems.length > 0 && (
+          {wishlist.length > 0 && (
             <button id="clear-wishlistitems" onClick={clearWishlist}>
               Clear Wishlist
             </button>

@@ -9,11 +9,11 @@ import { useLocation } from "react-router-dom";
 import { db } from "../../configs";
 import {
   addToCartTable,
-  usersTable,
   wishlistTable,
+  productsTable,  // Import products table to fetch fresh details
 } from "../../configs/schema";
 import { useUser } from "@clerk/clerk-react";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { UserContext } from "../contexts/UserContext";
 import { CartContext } from "../contexts/CartContext";
 
@@ -22,7 +22,6 @@ import { CartContext } from "../contexts/CartContext";
 // -------------------------------
 const Modal = ({ product, onClose }) => {
   const [animate, setAnimate] = useState(false);
-  const [loading, setLoading] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -34,7 +33,7 @@ const Modal = ({ product, onClose }) => {
         if (targetElement) {
           targetElement.scrollIntoView({ behavior: "smooth" });
         }
-      }, 500); // Adjust delay if necessary
+      }, 500);
 
       return () => clearTimeout(timeoutId);
     }
@@ -60,14 +59,13 @@ const Modal = ({ product, onClose }) => {
           position: "relative",
           background: "#fff",
           padding: "30px",
-          borderRadius: "10px", // Button radius remains unchanged
+          borderRadius: "10px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
           transform: animate ? "scale(1)" : "scale(0)",
           transition: "transform 0.5s ease",
           maxWidth: "600px",
           width: "90%",
-          maxHeight: "90vh", // Limit modal height to 90% of viewport
-          // overflowY: "auto",
+          maxHeight: "90vh",
         }}
       >
         <button
@@ -89,10 +87,10 @@ const Modal = ({ product, onClose }) => {
           alt={product.name}
           style={{
             width: "250px",
-            Height: "100px", // Do not change this image size
+            height: "100px", // Do not change this image size
             objectFit: "cover",
-            borderRadius: "8px", // Remains unchanged
-            margin: "0 auto ",
+            borderRadius: "8px",
+            margin: "0 auto",
             display: "block",
           }}
         />
@@ -106,13 +104,7 @@ const Modal = ({ product, onClose }) => {
         >
           {product.name}
         </h2>
-        <div
-          style={{
-            fontSize: "12px",
-            lineHeight: "1",
-            color: "#444",
-          }}
-        >
+        <div style={{ fontSize: "12px", lineHeight: "1", color: "#444" }}>
           {product.description && (
             <div style={{ marginBottom: "20px" }}>
               <h3
@@ -180,137 +172,15 @@ const Modal = ({ product, onClose }) => {
 };
 
 // -------------------------------
-// Custom 3D Coverflow Carousel with Infinite One‑Direction Loop (Append at Third Index)
-// -------------------------------
-// const CoverflowCarousel = ({ products, pause, onSlideClick }) => {
-//   // console.log(products);
-//   // Start with a doubled list for initial smoothness.
-//   const [carouselItems, setCarouselItems] = useState([
-//     ...products,
-//     ...products,
-//   ]);
-//   const N = products.length; // Original list count
-//   // "shift" increases continuously (in units of slides).
-//   const [shift, setShift] = useState(0);
-//   // "animate" flag controls whether to apply CSS transition.
-//   const [animate, setAnimate] = useState(true);
-
-//   // Track current window width for responsive spacing.
-//   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-//   useEffect(() => {
-//     const handleResize = () => setWindowWidth(window.innerWidth);
-//     window.addEventListener("resize", handleResize);
-//     return () => window.removeEventListener("resize", handleResize);
-//   }, []);
-
-//   // Calculate dynamic spacing:
-//   // For devices ≤480px, use a multiplier of 0.74; otherwise, 0.22.
-//   const spacing =
-//     windowWidth <= 480
-//       ? windowWidth * 0.54
-//       : windowWidth <= 780
-//       ? windowWidth * 0.4
-//       : windowWidth * 0.22;
-
-//   // Every 3 seconds, increase the shift by 1 slide if not paused.
-//   useEffect(() => {
-//     if (!pause) {
-//       const interval = setInterval(() => {
-//         setShift((prev) => prev + 1);
-//       }, 3000);
-//       return () => clearInterval(interval);
-//     }
-//   }, [pause]);
-
-//   // When shift reaches 3, append a new copy of the original products and subtract 3.
-//   useEffect(() => {
-//     if (shift >= 3) {
-//       setAnimate(false);
-//       setCarouselItems((prev) => [...prev, ...products]);
-//       setShift((prev) => prev - 3);
-//       setTimeout(() => {
-//         setAnimate(true);
-//       }, 50);
-//     }
-//   }, [shift, products]);
-
-//   // Define the center index as the beginning of the second copy.
-//   const center = N;
-
-//   // Compute the 3D transform style for each slide.
-//   const getSlideStyle = (index) => {
-//     // Set slide dimensions based on screen width
-//     const slideWidth = windowWidth <= 480 ? 200 : 300;
-//     const slideHeight = windowWidth <= 480 ? "65%" : "90%";
-
-//     const offset = index - center - shift;
-//     const baseScale = 0.8;
-//     const scale = Math.abs(offset) < 0.001 ? 1 : baseScale;
-//     const rotateY = offset * -45;
-//     const translateX = offset * spacing;
-//     const zIndex = Math.abs(offset) < 0.001 ? 2 : 1;
-
-//     return {
-//       transform: `translateX(${translateX}px) translateY(-50%) scale(${scale}) rotateY(${rotateY}deg)`,
-//       transition: animate ? "transform 1s ease" : "none",
-//       position: "absolute",
-//       top: "50%",
-//       left: "50%",
-//       marginLeft: `-${slideWidth / 2}px`, // Centers the slide horizontally based on its width
-//       width: `${slideWidth}px`,
-//       height: slideHeight,
-//       zIndex,
-//       cursor: "pointer",
-//     };
-//   };
-
-//   // Set container width to 100% if screen width is below 480px, otherwise 85%
-//   const containerWidth = windowWidth <= 480 ? "100%" : "85%";
-
-//   return (
-//     <div
-//       style={{
-//         position: "relative",
-//         width: containerWidth,
-//         height: "480px",
-//         perspective: "1000px",
-//         overflow: "hidden",
-//       }}
-//     >
-//       {carouselItems.map((product, index) => (
-//         <div
-//           key={product.name + index}
-//           style={getSlideStyle(index)}
-//           onClick={() => onSlideClick(product)}
-//         >
-//           <img
-//             src={product.imageurl}
-//             alt={product.name}
-//             style={{
-//               width: "100%",
-//               height: "100%",
-//               objectFit: "cover",
-//               borderRadius: "42px", // Keep same button radius / image style
-//               boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
-//             }}
-//           />
-//         </div>
-//       ))}
-//     </div>
-//   );
-// };
-
-// -------------------------------
 // Products Component
 // -------------------------------
 const Products = () => {
-  // const [cart, setCart] = useState([]);
   const { products } = useContext(ProductContext);
   const [modalProduct, setModalProduct] = useState(null);
-  // const { user } = useUser();
   const { setCart, cart, wishlist, setWishlist } = useContext(CartContext);
-  // Prevent background scrolling when modal is open.
+  const { userdetails } = useContext(UserContext);
 
+  // Prevent background scrolling when modal is open.
   useEffect(() => {
     if (modalProduct) {
       document.body.style.overflow = "hidden";
@@ -321,120 +191,119 @@ const Products = () => {
     }
   }, [modalProduct]);
 
-  const { userdetails } = useContext(UserContext);
-
-  const addtocart = async (product) => {
+  // -------------------------------
+  // Toggle Cart: Add or Remove Product with Matched Details
+  // -------------------------------
+  const toggleCart = async (product) => {
     try {
-      const res1 = await db
-        .insert(addToCartTable)
-        .values({
-          productId: product.id,
-          userId: userdetails?.id,
-        })
-        .returning({
-          cartId: addToCartTable.id,
-          userId: addToCartTable.userId,
+      // Fetch latest product details from the database using product ID
+      const latestProducts = await db
+        .select()
+        .from(productsTable)
+        .where(eq(productsTable.id, product.id));
+  
+      if (!latestProducts || latestProducts.length === 0) {
+        console.error("Product not found in DB");
+        return;
+      }
+      const latestProduct = latestProducts[0];
+  
+      // Check if product is already in cart
+      const existingCartItem = cart.find((item) => item.product.id === latestProduct.id);
+  
+      if (existingCartItem) {
+        // Remove from cart in the database
+        await db
+          .delete(addToCartTable)
+          .where(
+            and(
+              eq(addToCartTable.productId, latestProduct.id),
+              eq(addToCartTable.userId, userdetails?.id)
+            )
+          );
+  
+        // Remove from state
+        setCart((prevCart) => prevCart.filter((item) => item.product.id !== latestProduct.id));
+      } else {
+        // Add to cart in the database
+        const res = await db
+          .insert(addToCartTable)
+          .values({
+            productId: latestProduct.id,
+            userId: userdetails?.id,
+          })
+          .returning({
+            cartId: addToCartTable.id,
+            userId: addToCartTable.userId,
+          });
+  
+        // Ensure no duplicates before updating state
+        setCart((prevCart) => {
+          const isAlreadyAdded = prevCart.some((item) => item.product.id === latestProduct.id);
+          return isAlreadyAdded ? prevCart : [...prevCart, { product: latestProduct, quantity: 1 }];
         });
-
-      setCart((pre) => [
-        ...pre,
-        { product, cartId: res1.cartId, userId: res1.userId },
-      ]);
+      }
     } catch (error) {
-      console.log(error);
+      console.error("Error toggling cart:", error);
     }
   };
+  
 
-  // const getcartsitem = async () => {
-  //   try {
-  //     const res = await db
-  //       .select({
-  //         product: productsTable,
-  //         userId: addToCartTable.userId,
-  //         cartId: addToCartTable.id,
-  //       })
-  //       .from(addToCartTable)
-  //       .innerJoin(
-  //         productsTable,
-  //         eq(addToCartTable.productId, productsTable.id)
-  //       )
-  //       .where(eq(addToCartTable.userId, userdetails.id));
-  //     setCartitem(res);
-  //     console.log(res);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
-
-  // const toggleCart = (product) => {
-  //   console.log(product);
-  //   setCart((prevCart) => {
-  //     const existingItem = prevCart.find((item) => item.name === product.name);
-  //     if (existingItem) {
-  //       return prevCart.filter((item) => item.name !== product.name);
-  //     } else {
-  //       const discountedPrice = Math.trunc(
-  //         product.oprice - (product.oprice * product.discount) / 100
-  //       );
-
-  //       return [
-  //         ...prevCart,
-  //         { ...product, dprice: discountedPrice, quantity: 1 },
-  //       ];
-  //     }
-  //   });
-  // };
-
+  // -------------------------------
+  // Toggle Wishlist: Add or Remove Product with Matched Details
+  // -------------------------------
   const toggleWishlist = async (product) => {
     try {
-      // Check if product is already in the wishlist
-      const existingWishlistItem = await db
+      // Fetch latest product details from the database
+      const latestProducts = await db
         .select()
-        .from(wishlistTable)
-        .where(
-          and(
-            eq(wishlistTable.userId, userdetails?.id),
-            eq(wishlistTable.productId, product.id)
-          )
-        )
-        .limit(1); // We only need one matching entry
-
-      if (existingWishlistItem.length > 0) {
-        // If product exists, remove it from wishlist
+        .from(productsTable)
+        .where(eq(productsTable.id, product.id));
+  
+      if (!latestProducts || latestProducts.length === 0) return;
+      const latestProduct = latestProducts[0];
+  
+      // Check if product is already in the wishlist
+      const existingWishlistItem = wishlist.find((item) => item.productId === latestProduct.id);
+  
+      if (existingWishlistItem) {
+        // Remove from wishlist in the database
         await db
           .delete(wishlistTable)
           .where(
             and(
               eq(wishlistTable.userId, userdetails?.id),
-              eq(wishlistTable.productId, product.id)
+              eq(wishlistTable.productId, latestProduct.id)
             )
           );
-
-        // Update state by removing the product
-        setWishlist((prevWishlist) =>
-          prevWishlist.filter((item) => item.productId !== product.id)
-        );
+  
+        // Remove from state
+        setWishlist((prevWishlist) => prevWishlist.filter((item) => item.productId !== latestProduct.id));
       } else {
-        // If product does not exist, add it
+        // Add to wishlist in the database
         const res = await db
           .insert(wishlistTable)
           .values({
             userId: userdetails?.id,
-            productId: product.id,
+            productId: latestProduct.id,
           })
           .returning({
             wishlistId: wishlistTable.id,
             productId: wishlistTable.productId,
             userId: wishlistTable.userId,
           });
-
-        // Update state by adding the product
-        setWishlist((prevWishlist) => [...prevWishlist, product]);
+  
+        // Ensure no duplicates before updating state
+        setWishlist((prevWishlist) => {
+          const isAlreadyAdded = prevWishlist.some((item) => item.productId === latestProduct.id);
+          return isAlreadyAdded ? prevWishlist : [...prevWishlist, { ...latestProduct, productId: latestProduct.id }];
+        });
       }
     } catch (error) {
       console.error("Error toggling wishlist:", error);
     }
   };
+  
 
   const handleSlideClick = (product) => {
     setModalProduct(product);
@@ -446,19 +315,6 @@ const Products = () => {
 
   return (
     <section className="py-20 mt-50 flex flex-col items-center">
-      {/* <h1 id="products-section" className="product-heading">
-        Our Collection
-      </h1> */}
-
-      {/* Custom 3D Coverflow Carousel Section */}
-      {/* <div className="w-9/10 flex items-center justify-center py-10  ">
-        <CoverflowCarousel
-          products={products}
-          pause={modalProduct !== null}
-          onSlideClick={handleSlideClick}
-        />
-      </div> */}
-
       <h1 id="shop-section" className="product-heading">
         Shop The Luxury
       </h1>
@@ -469,10 +325,8 @@ const Products = () => {
           const discountedPrice = Math.trunc(
             product.oprice - (product.oprice * product.discount) / 100
           );
-          const inCart = cart.some((item) => item.name === product.name);
-          const inWishlist = wishlist.some(
-            (item) => item.productId == product.id
-          );
+          const inCart = cart.some((item) => item.product.id === product.id);
+          const inWishlist = wishlist.some((item) => item.productId == product.id);
 
           return (
             <div
@@ -516,14 +370,12 @@ const Products = () => {
                 </span>
               </div>
               <button
-                onClick={() => {
-                  addtocart(product);
-                }}
+                onClick={() => toggleCart(product)}
                 className={`w-full py-2 text-lg font-semibold flex items-center justify-center gap-2 transition ${
                   inCart ? "bg-black text-white" : "bg-black text-white"
                 }`}
               >
-                {"Add to Cart"}
+                {inCart ? "Remove from Cart" : "Add to Cart"}
                 <img src={CartImage} alt="Cart" className="w-8 h-8" />
               </button>
             </div>
