@@ -1,4 +1,4 @@
-// src/pages/Checkout.js
+// src/pages/Checkout.jsx
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import "../style/checkout.css";
@@ -24,9 +24,7 @@ import { eq } from "drizzle-orm";
 // -------------------------------------------------------------------
 const formatAddress = (address) => {
   if (!address) return "";
-  return `${address.name} - ${address.address}, ${address.city}, ${
-    address.state
-  }, ${address.country} (${address.postalCode})${
+  return `${address.name} - ${address.address}, ${address.city}, ${address.state}, ${address.country} (${address.postalCode})${
     address.phone ? " - Phone: " + address.phone : ""
   }`;
 };
@@ -47,6 +45,7 @@ function AddressSelection({
   handleDeleteAddress,
   addressFieldsOrder,
   editingIndex,
+  handleUseCurrentLocation,
 }) {
   return (
     <div className="address-selection">
@@ -64,6 +63,7 @@ function AddressSelection({
             <span
               onClick={() => {
                 setSelectedAddress(addr);
+                // Reset newAddress when an address is selected
                 setNewAddress({
                   name: "",
                   phone: "",
@@ -101,20 +101,43 @@ function AddressSelection({
             key={field}
             type="text"
             name={field}
+            // For the "Name" field, show "Local Address" as a placeholder
             placeholder={
-              field.charAt(0).toUpperCase() + field.slice(1) == "Name"
-                ? "local Address"
+              field.charAt(0).toUpperCase() + field.slice(1) === "Name"
+                ? "Name"
                 : field.charAt(0).toUpperCase() + field.slice(1)
             }
             value={newAddress[field]}
+            // When focusing, clear any selected address
             onFocus={() => setSelectedAddress(null)}
+            // Update the state on change
             onChange={(e) =>
               setNewAddress({ ...newAddress, [field]: e.target.value })
             }
-            onBlur={field === "postalCode" ? handlePincodeBlur : null}
+            // For the postalCode field, we do not auto-fetch on blur
+            // Instead, we call handlePincodeBlur only when Enter is pressed
+            {...(field === "postalCode"
+              ? {
+                  onKeyDown: (e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault(); // Prevent form submission
+                      handlePincodeBlur();
+                    }
+                  },
+                }
+              : {})}
             className="form-control"
           />
         ))}
+
+        <div className="location-api-container">
+          <button
+            onClick={handleUseCurrentLocation}
+            className="btn btn-outline-secondary"
+          >
+            Use My Current Location
+          </button>
+        </div>
         <div className="address-form-actions">
           {editingIndex !== null ? (
             <button
@@ -143,7 +166,8 @@ function AddressSelection({
 // -------------------------------------------------------------------
 function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
   const originalTotal = selectedItems.reduce(
-    (acc, item) => acc + Math.floor(item.product.oprice) * (item.quantity || 1),
+    (acc, item) =>
+      acc + Math.floor(item.product.oprice) * (item.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
@@ -157,7 +181,6 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
     0
   );
   const discountCalculated = originalTotal - productTotal;
-  const finalPrice = productTotal + deliveryCharge;
 
   return (
     <div className="order-summary">
@@ -230,7 +253,7 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
 // -------------------------------------------------------------------
 // Component: PaymentDetails
 // Handles payment method selection and displays relevant input fields.
-// Also includes a toggleable dropdown that shows a full price breakdown.
+// Integrated with Razorpay payment option.
 // -------------------------------------------------------------------
 function PaymentDetails({
   paymentMethod,
@@ -249,13 +272,14 @@ function PaymentDetails({
   transactionId,
   setTransactionId,
 }) {
+  const { userdetails } = useContext(UserContext);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [expiry, setExpiry] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [cvv, setCvv] = useState("");
   const [upiError, setUpiError] = useState("");
 
-  // Automatically mark payment as verified for Cash on Delivery
+  // Automatically verify payment for Cash on Delivery
   useEffect(() => {
     if (paymentMethod === "Cash on Delivery") {
       onPaymentVerified(true);
@@ -301,8 +325,58 @@ function PaymentDetails({
     }
   };
 
-  const handlePayNow = () => {
-    onPaymentVerified(true);
+  // ------------------------------
+  // Razorpay Integration Functions
+  // ------------------------------
+  const loadScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayPayment = async () => {
+    const scriptLoaded = await loadScript();
+    if (!scriptLoaded) {
+      alert("Razorpay SDK failed to load. Are you online?");
+      return;
+    }
+
+    // Call your backend to create an order.
+    const result = await fetch("http://localhost:5000/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: totalPrice * 100 }), // amount in paisa
+    });
+    const orderData = await result.json();
+
+    const options = {
+      key: "YOUR_TEST_KEY_ID", // Replace with your Razorpay test key
+      amount: orderData.amount.toString(),
+      currency: orderData.currency,
+      name: "Your Company Name",
+      description: "Test Transaction",
+      order_id: orderData.id,
+      handler: function (response) {
+        alert("Payment successful!");
+        setTransactionId(response.razorpay_payment_id);
+        onPaymentVerified(true);
+      },
+      prefill: {
+        name: userdetails?.name || "Test User",
+        email: userdetails?.email || "testuser@example.com",
+        contact: userdetails?.phone || "9999999999",
+      },
+      theme: {
+        color: "#3399cc",
+      },
+    };
+
+    const paymentObject = new window.Razorpay(options);
+    paymentObject.open();
   };
 
   return (
@@ -317,7 +391,9 @@ function PaymentDetails({
             <span className="payment-total-price">
               <strong>Total Price:</strong> ₹{totalPrice}
             </span>
-            <span className="toggle-icon">{summaryExpanded ? "▲" : "▼"}</span>
+            <span className="toggle-icon">
+              {summaryExpanded ? "▲" : "▼"}
+            </span>
           </span>
         </div>
         {summaryExpanded && (
@@ -340,7 +416,7 @@ function PaymentDetails({
       </div>
       <h2>Payment Options</h2>
       <div className="payment-method-selection">
-        {["UPI", "Debit Card", "Cash on Delivery"].map((method) => (
+        {["Razorpay", "UPI", "Cash on Delivery"].map((method) => (
           <label key={method} className="payment-option">
             <input
               type="radio"
@@ -349,7 +425,6 @@ function PaymentDetails({
               checked={paymentMethod === method}
               onChange={(e) => {
                 setPaymentMethod(e.target.value);
-                console.log(e.target.value);
               }}
             />
             {method}
@@ -357,6 +432,14 @@ function PaymentDetails({
         ))}
       </div>
       <div className="payment-method-content">
+        {paymentMethod === "Razorpay" && (
+          <div className="razorpay-payment-content">
+            <h3>Complete Payment via Razorpay</h3>
+            <button className="btn btn-success" onClick={handleRazorpayPayment}>
+              Pay with Razorpay
+            </button>
+          </div>
+        )}
         {paymentMethod === "UPI" && (
           <div className="upi-payment-content">
             <h3>Select UPI Option</h3>
@@ -392,69 +475,20 @@ function PaymentDetails({
                 {upiError && <p className="text-danger">{upiError}</p>}
               </div>
             )}
-            <img src={QRCodeImage} className="  w-40 h-40" />
-            <div class="dabba-container">
-              <label className="   text-start">Enter Your Transaction Id</label>
+            <img src={QRCodeImage} className="w-40 h-40" alt="QR Code" />
+            <div className="dabba-container">
+              <label className="text-start">Enter Your Transaction Id</label>
               <input
                 type="text"
                 id="likhYaha"
                 value={transactionId}
                 onChange={(e) => setTransactionId(e.target.value)}
-                class="kalaSafedDabba"
+                className="kalaSafedDabba"
                 placeholder="Enter Transaction Id after payment"
               />
             </div>
-
-            {/* {!paymentVerified ? (
-              // <button
-              //   onClick={handlePayNow}
-              //   className="btn btn-success pay-now-btn"
-              // >
-              //   Pay Now
-              // </button>
-            ) : (
-              <p>Payment Verified</p>
-            )} */}
           </div>
         )}
-        {/* {paymentMethod === "Debit Card" && (
-          <div className="debit-card-payment-content">
-            <h3>Enter Card Details</h3>
-            <input
-              type="text"
-              placeholder="Card Number"
-              className="form-control"
-              value={cardNumber}
-              onChange={handleCardNumberChange}
-            />
-            <div className="card-details-row">
-              <input
-                type="text"
-                placeholder="Expiry Date (MM/YY)"
-                className="form-control"
-                value={expiry}
-                onChange={handleExpiryChange}
-              />
-              <input
-                type="text"
-                placeholder="CVV"
-                className="form-control"
-                value={cvv}
-                onChange={handleCvvChange}
-              />
-            </div>
-            {!paymentVerified ? (
-              <button
-                onClick={handlePayNow}
-                className="btn btn-success pay-now-btn"
-              >
-                Pay Now
-              </button>
-            ) : (
-              <p>Payment Verified</p>
-            )}
-          </div>
-        )} */}
         {paymentMethod === "Cash on Delivery" && (
           <div className="cod-payment-content">
             <p>
@@ -496,9 +530,8 @@ function Confirmation({ resetCheckout }) {
 export default function Checkout() {
   const navigate = useNavigate();
   const { orders, setOrders } = useContext(OrderContext);
-  // const { userAddress } = useContext(UserContext);
   const { setCart } = useContext(CartContext);
-  // Step 1: Address, 2: Order Summary, 3: Payment, 4: Confirmation
+  // Steps: 1 = Address, 2 = Order Summary, 3 = Payment, 4 = Confirmation
   const [step, setStep] = useState(1);
   // Address-related state
   const [selectedAddress, setSelectedAddress] = useState(null);
@@ -525,7 +558,6 @@ export default function Checkout() {
   // Retrieve selected items from localStorage
   const [selectedItems, setSelectedItems] = useState([]);
   useEffect(() => {
-    // setAddresses(userAddress);
     const items = localStorage.getItem("selectedItems");
     if (items) {
       setSelectedItems(JSON.parse(items));
@@ -553,31 +585,91 @@ export default function Checkout() {
   const [selectedUpiApp, setSelectedUpiApp] = useState("PhonePe");
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { userdetails } = useContext(UserContext);
+  const { userdetails, address } = useContext(UserContext);
   const [transactionId, setTransactionId] = useState("");
-  const { address } = useContext(UserContext);
-  // Handler: Validate postalCode and auto-fill address fields (simulate fetch)
-  const handlePincodeBlur = () => {
+
+  // -------------------------------------------------------------------
+  // Handler: Validate postalCode and auto-fill address fields
+  // Triggered only when user presses Enter in postalCode input.
+  // -------------------------------------------------------------------
+  const handlePincodeBlur = async () => {
     const { postalCode } = newAddress;
     if (postalCode.length !== 6) {
       alert("Pincode must be 6 digits.");
       return;
     }
-    const fetchedData = {
-      city: "Sample City",
-      state: "Sample State",
-      country: "Sample Country",
-    };
-    setNewAddress((prev) => ({
-      ...prev,
-      city: fetchedData.city,
-      state: fetchedData.state,
-      country: fetchedData.country,
-    }));
+    try {
+      const response = await fetch(
+        `https://api.postalpincode.in/pincode/${postalCode}`
+      );
+      const data = await response.json();
+      if (data[0].Status === "Success" && data[0].PostOffice.length > 0) {
+        const location = data[0].PostOffice[0];
+        setNewAddress((prev) => ({
+          ...prev,
+          city: location.District,
+          state: location.State,
+          country: location.Country,
+        }));
+      } else {
+        alert("Invalid Pincode or no location data found.");
+      }
+    } catch (error) {
+      console.error("Error fetching location:", error);
+      alert("Failed to fetch location from pincode.");
+    }
   };
+
+  // -------------------------------------------------------------------
+  // Handler: Use Browser Geolocation and Reverse Geocoding API
+  // to auto-fill address fields when the button is clicked.
+  // -------------------------------------------------------------------
+  const handleUseCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          // Replace with your chosen reverse geocoding API and valid API key.
+          fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=YOUR_API_KEY`
+          )
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.results && data.results.length > 0) {
+                const addressComponents = data.results[0].address_components;
+                const getComponent = (type) =>
+                  addressComponents.find((component) =>
+                    component.types.includes(type)
+                  )?.long_name || "";
+                setNewAddress((prev) => ({
+                  ...prev,
+                  address: data.results[0].formatted_address,
+                  city: getComponent("locality"),
+                  state: getComponent("administrative_area_level_1"),
+                  country: getComponent("country"),
+                  postalCode: getComponent("postal_code"),
+                }));
+              }
+            })
+            .catch((err) => console.error("Error in reverse geocoding:", err));
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          alert("Unable to retrieve your location.");
+        }
+      );
+    } else {
+      alert("Geolocation is not supported by this browser.");
+    }
+  };
+
   useEffect(() => {
     setAddresses(address);
   }, [address]);
+
+  // -------------------------------------------------------------------
+  // Handler: Save new address or update existing address in database
+  // -------------------------------------------------------------------
   const saveAddressInDb = async (address) => {
     console.log(address);
     try {
@@ -589,6 +681,7 @@ export default function Checkout() {
       console.log(error);
     }
   };
+
   const updatedAddressesInDb = async (address) => {
     try {
       const res = await db
@@ -599,7 +692,10 @@ export default function Checkout() {
       console.log(error);
     }
   };
-  // Handler: Save or update address
+
+  // -------------------------------------------------------------------
+  // Handler: Save or update address locally and in the database
+  // -------------------------------------------------------------------
   const handleSaveAddress = () => {
     if (editingIndex === null && addresses.length >= 4) {
       alert("You can only save up to 4 addresses.");
@@ -611,13 +707,13 @@ export default function Checkout() {
       setAddresses(updatedAddresses);
       setSelectedAddress(newAddress);
       updatedAddressesInDb(newAddress);
-      console.log(newAddress);
       setEditingIndex(null);
     } else {
       setAddresses([...addresses, newAddress]);
       saveAddressInDb(newAddress);
       setSelectedAddress(newAddress);
     }
+    // Reset the newAddress form
     setNewAddress({
       name: "",
       phone: "",
@@ -629,13 +725,17 @@ export default function Checkout() {
     });
   };
 
+  // -------------------------------------------------------------------
   // Handler: Edit an existing address
+  // -------------------------------------------------------------------
   const handleEditAddress = (index) => {
     setNewAddress(addresses[index]);
     setEditingIndex(index);
   };
 
-  // Handler: Delete address and clear selection if needed
+  // -------------------------------------------------------------------
+  // Handler: Delete an address and clear selection if needed
+  // -------------------------------------------------------------------
   const handleDeleteAddress = (index) => {
     const updatedAddresses = addresses.filter((_, i) => i !== index);
     setAddresses(updatedAddresses);
@@ -647,8 +747,11 @@ export default function Checkout() {
     }
   };
 
+  // -------------------------------------------------------------------
+  // Handler: Create order, update DB, clear cart and navigate to confirmation
+  // -------------------------------------------------------------------
   const createorder = async (newOrder, selectedAddress) => {
-    if (paymentMethod == "UPI" && transactionId.length < 12) {
+    if (paymentMethod === "UPI" && transactionId.length < 12) {
       toast.error("Please Fill the TransactionId");
       return;
     }
@@ -686,21 +789,19 @@ export default function Checkout() {
         productId: item.product.id,
         quantity: item.product.quantity,
         price: Math.floor(
-          item.product.oprice -
-            (item.product.discount / 100) * item.product.oprice
+          item.product.oprice - (item.product.discount / 100) * item.product.oprice
         ),
         totalPrice:
           Math.floor(
-            item.product.oprice -
-              (item.product.discount / 100) * item.product.oprice
-          ) * item.product?.quantity, // Assuming dprice is the discounted price
+            item.product.oprice - (item.product.discount / 100) * item.product.oprice
+          ) * item.product?.quantity,
       }));
 
       await db.insert(orderItemsTable).values(orderItemsData);
       await db
         .delete(addToCartTable)
         .where(eq(addToCartTable.userId, userdetails.id));
-      toast.success("order Placed");
+      toast.success("Order Placed");
       setCart([]);
       setLoading(false);
 
@@ -709,7 +810,10 @@ export default function Checkout() {
       console.log(error);
     }
   };
-  // Handler: Place Order - create order and move to confirmation
+
+  // -------------------------------------------------------------------
+  // Handler: Place Order - validate and create the order
+  // -------------------------------------------------------------------
   const handlePlaceOrder = () => {
     if (selectedItems.length === 0) {
       alert("No items selected for the order.");
@@ -724,18 +828,20 @@ export default function Checkout() {
       progressStep: 1,
       items: selectedItems,
     };
-    // console.log(selectedItems);
     createorder(newOrder, selectedAddress);
 
     setOrders((prevOrders) => [...prevOrders, newOrder]);
     localStorage.removeItem("selectedItems");
   };
 
-  // Navigation handlers for checkout steps
+  // -------------------------------------------------------------------
+  // Navigation handlers: Next and Previous steps in checkout
+  // -------------------------------------------------------------------
   const handleNext = () => {
     if (step === 1 && !selectedAddress) {
       if (newAddress.name && newAddress.address && newAddress.postalCode) {
         setSelectedAddress(newAddress);
+        // Reset newAddress form after selection
         setNewAddress({
           name: "",
           phone: "",
@@ -766,7 +872,7 @@ export default function Checkout() {
   return (
     <div className="checkout-wrapper">
       <div className="checkout-header">
-        <div className="  absolute  top-2">
+        <div className="absolute top-2">
           <ToastContainer />
         </div>
         <h1>Checkout</h1>
@@ -798,6 +904,7 @@ export default function Checkout() {
             handleDeleteAddress={handleDeleteAddress}
             addressFieldsOrder={addressFieldsOrder}
             editingIndex={editingIndex}
+            handleUseCurrentLocation={handleUseCurrentLocation}
           />
         )}
         {step === 2 && (
@@ -840,7 +947,7 @@ export default function Checkout() {
                 className="btn btn-primary"
                 disabled={!paymentVerified}
               >
-                {loading ? "placing order....." : "place ordered"}
+                {loading ? "Placing order..." : "Place Order"}
               </button>
             ) : (
               <button onClick={handleNext} className="btn btn-primary">
