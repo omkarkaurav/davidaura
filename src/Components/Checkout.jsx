@@ -13,7 +13,6 @@ import {
   UserAddressTable,
 } from "../../configs/schema";
 import { UserContext } from "../contexts/UserContext";
-import QRCodeImage from "../assets/example.webp";
 import { ToastContainer, toast } from "react-toastify";
 import { CartContext } from "../contexts/CartContext";
 import { eq } from "drizzle-orm";
@@ -24,7 +23,9 @@ import { eq } from "drizzle-orm";
 // -------------------------------------------------------------------
 const formatAddress = (address) => {
   if (!address) return "";
-  return `${address.name} - ${address.address}, ${address.city}, ${address.state}, ${address.country} (${address.postalCode})${
+  return `${address.name} - ${address.address}, ${address.city}, ${
+    address.state
+  }, ${address.country} (${address.postalCode})${
     address.phone ? " - Phone: " + address.phone : ""
   }`;
 };
@@ -37,6 +38,8 @@ function AddressSelection({
   addresses,
   selectedAddress,
   setSelectedAddress,
+  selectedAddressIndex,
+  setSelectedAddressIndex,
   newAddress,
   setNewAddress,
   handleSaveAddress,
@@ -45,7 +48,6 @@ function AddressSelection({
   handleDeleteAddress,
   addressFieldsOrder,
   editingIndex,
-  handleUseCurrentLocation,
 }) {
   return (
     <div className="address-selection">
@@ -55,13 +57,12 @@ function AddressSelection({
           <div
             key={index}
             className={`address-item ${
-              selectedAddress && selectedAddress.postalCode === addr.postalCode
-                ? "active"
-                : ""
+              selectedAddressIndex === index ? "active" : ""
             }`}
           >
             <span
               onClick={() => {
+                setSelectedAddressIndex(index);
                 setSelectedAddress(addr);
                 // Reset newAddress when an address is selected
                 setNewAddress({
@@ -77,6 +78,7 @@ function AddressSelection({
             >
               {formatAddress(addr)}
             </span>
+
             <div className="address-actions">
               <button
                 onClick={() => handleEditAddress(index)}
@@ -101,26 +103,20 @@ function AddressSelection({
             key={field}
             type="text"
             name={field}
-            // For the "Name" field, show "Local Address" as a placeholder
-            placeholder={
-              field.charAt(0).toUpperCase() + field.slice(1) === "Name"
-                ? "Name"
-                : field.charAt(0).toUpperCase() + field.slice(1)
-            }
+            placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
             value={newAddress[field]}
-            // When focusing, clear any selected address
-            onFocus={() => setSelectedAddress(null)}
-            // Update the state on change
+            onFocus={() => {
+              setSelectedAddress(null);
+              setSelectedAddressIndex(null);
+            }}
             onChange={(e) =>
               setNewAddress({ ...newAddress, [field]: e.target.value })
             }
-            // For the postalCode field, we do not auto-fetch on blur
-            // Instead, we call handlePincodeBlur only when Enter is pressed
             {...(field === "postalCode"
               ? {
                   onKeyDown: (e) => {
                     if (e.key === "Enter") {
-                      e.preventDefault(); // Prevent form submission
+                      e.preventDefault();
                       handlePincodeBlur();
                     }
                   },
@@ -129,15 +125,6 @@ function AddressSelection({
             className="form-control"
           />
         ))}
-
-        <div className="location-api-container">
-          <button
-            onClick={handleUseCurrentLocation}
-            className="btn btn-outline-secondary"
-          >
-            Use My Current Location
-          </button>
-        </div>
         <div className="address-form-actions">
           {editingIndex !== null ? (
             <button
@@ -166,8 +153,7 @@ function AddressSelection({
 // -------------------------------------------------------------------
 function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
   const originalTotal = selectedItems.reduce(
-    (acc, item) =>
-      acc + Math.floor(item.product.oprice) * (item.quantity || 1),
+    (acc, item) => acc + Math.floor(item.product.oprice) * (item.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
@@ -253,31 +239,22 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
 // -------------------------------------------------------------------
 // Component: PaymentDetails
 // Handles payment method selection and displays relevant input fields.
-// Integrated with Razorpay payment option.
+// Includes Razorpay integration.
 // -------------------------------------------------------------------
 function PaymentDetails({
   paymentMethod,
   setPaymentMethod,
-  upiId,
-  setUpiId,
-  verifiedUpi,
-  selectedUpiApp,
-  setSelectedUpiApp,
   onPaymentVerified,
-  paymentVerified,
   productTotal,
+  paymentVerified,
   discountCalculated,
   deliveryCharge,
   totalPrice,
-  transactionId,
   setTransactionId,
+  selectedAddress,
 }) {
   const { userdetails } = useContext(UserContext);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [expiry, setExpiry] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [upiError, setUpiError] = useState("");
 
   // Automatically verify payment for Cash on Delivery
   useEffect(() => {
@@ -286,98 +263,45 @@ function PaymentDetails({
     }
   }, [paymentMethod, onPaymentVerified]);
 
-  const handleExpiryChange = (e) => {
-    const digits = e.target.value.replace(/\D/g, "");
-    let formatted = "";
-    if (digits.length === 0) {
-      formatted = "";
-    } else if (digits.length <= 2) {
-      formatted = digits;
-    } else {
-      formatted = digits.slice(0, 2) + "/" + digits.slice(2, 4);
-    }
-    setExpiry(formatted);
-  };
+  const isCODAllowed =
+    selectedAddress &&
+    selectedAddress.city &&
+    selectedAddress.city.toLowerCase() === "gwalior";
 
-  const handleCardNumberChange = (e) => {
-    let digits = e.target.value.replace(/\D/g, "");
-    if (digits.length > 16) {
-      digits = digits.slice(0, 16);
-    }
-    const formatted = digits.match(/.{1,4}/g)?.join(" ") || "";
-    setCardNumber(formatted);
-  };
+  // Available payment methods include UPI, Razorpay, and conditionally COD.
+  const availablePaymentMethods = ["Razorpay"].concat(
+    isCODAllowed ? ["Cash on Delivery"] : []
+  );
 
-  const handleCvvChange = (e) => {
-    let digits = e.target.value.replace(/\D/g, "");
-    if (digits.length > 3) {
-      digits = digits.slice(0, 3);
-    }
-    setCvv(digits);
-  };
-
-  const handleUpiVerification = () => {
-    const regex = /^[a-zA-Z0-9.\-_]{2,}@[a-zA-Z]{2,}$/;
-    if (regex.test(upiId)) {
-      setUpiError("");
-    } else {
-      setUpiError("Invalid UPI ID format. Example: example@bank");
-    }
-  };
-
-  // ------------------------------
-  // Razorpay Integration Functions
-  // ------------------------------
-  const loadScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const handleRazorpayPayment = async () => {
-    const scriptLoaded = await loadScript();
-    if (!scriptLoaded) {
-      alert("Razorpay SDK failed to load. Are you online?");
-      return;
-    }
-
-    // Call your backend to create an order.
-    const result = await fetch("http://localhost:5000/create-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: totalPrice * 100 }), // amount in paisa
-    });
-    const orderData = await result.json();
-
+  // Razorpay payment handler
+  const handleRazorpayPayment = () => {
     const options = {
-      key: "YOUR_TEST_KEY_ID", // Replace with your Razorpay test key
-      amount: orderData.amount.toString(),
-      currency: orderData.currency,
-      name: "Your Company Name",
-      description: "Test Transaction",
-      order_id: orderData.id,
-      handler: function (response) {
-        alert("Payment successful!");
-        setTransactionId(response.razorpay_payment_id);
-        onPaymentVerified(true);
-      },
+      key: "rzp_test_ewlL5XgMo10QR4",
+      amount: totalPrice * 100,
+      currency: "INR",
+      name: "DevidAura",
+      description: "Order Payment",
       prefill: {
-        name: userdetails?.name || "Test User",
-        email: userdetails?.email || "testuser@example.com",
-        contact: userdetails?.phone || "9999999999",
+        name: userdetails?.name || "",
+        email: userdetails?.email || "",
+        contact: selectedAddress?.phone || "",
       },
-      theme: {
-        color: "#3399cc",
+      handler: function (response) {
+        console.log("Payment successful:", response);
+        setTransactionId(response.razorpay_payment_id);
+        onPaymentVerified(true); // <- this sets paymentVerified = true
+        toast.success("Payment successful!");
+      },
+      modal: {
+        ondismiss: function () {
+          toast.error("Payment cancelled");
+        },
       },
     };
-
-    const paymentObject = new window.Razorpay(options);
-    paymentObject.open();
+    const rzp = new window.Razorpay(options);
+    rzp.open();
   };
+  
 
   return (
     <div className="payment-details">
@@ -391,9 +315,7 @@ function PaymentDetails({
             <span className="payment-total-price">
               <strong>Total Price:</strong> ₹{totalPrice}
             </span>
-            <span className="toggle-icon">
-              {summaryExpanded ? "▲" : "▼"}
-            </span>
+            <span className="toggle-icon">{summaryExpanded ? "▲" : "▼"}</span>
           </span>
         </div>
         {summaryExpanded && (
@@ -416,16 +338,14 @@ function PaymentDetails({
       </div>
       <h2>Payment Options</h2>
       <div className="payment-method-selection">
-        {["Razorpay", "UPI", "Cash on Delivery"].map((method) => (
+        {availablePaymentMethods.map((method) => (
           <label key={method} className="payment-option">
             <input
               type="radio"
               name="paymentMethod"
               value={method}
               checked={paymentMethod === method}
-              onChange={(e) => {
-                setPaymentMethod(e.target.value);
-              }}
+              onChange={(e) => setPaymentMethod(e.target.value)}
             />
             {method}
           </label>
@@ -434,59 +354,15 @@ function PaymentDetails({
       <div className="payment-method-content">
         {paymentMethod === "Razorpay" && (
           <div className="razorpay-payment-content">
-            <h3>Complete Payment via Razorpay</h3>
-            <button className="btn btn-success" onClick={handleRazorpayPayment}>
-              Pay with Razorpay
+            <h3>UPI</h3>
+            <p>Total Amount: ₹{totalPrice}</p>
+            <button
+              onClick={handleRazorpayPayment}
+              className="btn btn-outline-primary"
+              disabled={paymentVerified}
+            >
+              {paymentVerified ? "Paid" : "Pay Now"}
             </button>
-          </div>
-        )}
-        {paymentMethod === "UPI" && (
-          <div className="upi-payment-content">
-            <h3>Select UPI Option</h3>
-            <div className="upi-option-group">
-              {["PhonePe", "Paytm", "Google Pay", "Other"].map((option) => (
-                <label key={option} className="upi-option">
-                  <input
-                    type="radio"
-                    name="upiOption"
-                    value={option}
-                    checked={selectedUpiApp === option}
-                    onChange={(e) => setSelectedUpiApp(e.target.value)}
-                  />
-                  {option === "Other" ? "Enter UPI ID" : option}
-                </label>
-              ))}
-            </div>
-            {selectedUpiApp === "Other" && (
-              <div className="upi-id-input">
-                <input
-                  type="text"
-                  placeholder="Enter UPI ID (e.g., example@bank)"
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value)}
-                  className="form-control"
-                />
-                <button
-                  onClick={handleUpiVerification}
-                  className="btn btn-outline-primary"
-                >
-                  Verify
-                </button>
-                {upiError && <p className="text-danger">{upiError}</p>}
-              </div>
-            )}
-            <img src={QRCodeImage} className="w-40 h-40" alt="QR Code" />
-            <div className="dabba-container">
-              <label className="text-start">Enter Your Transaction Id</label>
-              <input
-                type="text"
-                id="likhYaha"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                className="kalaSafedDabba"
-                placeholder="Enter Transaction Id after payment"
-              />
-            </div>
           </div>
         )}
         {paymentMethod === "Cash on Delivery" && (
@@ -531,11 +407,13 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { orders, setOrders } = useContext(OrderContext);
   const { setCart } = useContext(CartContext);
+  const { userdetails, address } = useContext(UserContext);
   // Steps: 1 = Address, 2 = Order Summary, 3 = Payment, 4 = Confirmation
   const [step, setStep] = useState(1);
   // Address-related state
-  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState(null);
   const [addresses, setAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
   const [newAddress, setNewAddress] = useState({
     name: "",
     phone: "",
@@ -581,16 +459,14 @@ export default function Checkout() {
   // Payment-related state
   const [paymentMethod, setPaymentMethod] = useState("UPI");
   const [upiId, setUpiId] = useState("");
-  const [verifiedUpi, setVerifiedUpi] = useState(false);
+  const [verifiedUpi] = useState(false);
   const [selectedUpiApp, setSelectedUpiApp] = useState("PhonePe");
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { userdetails, address } = useContext(UserContext);
   const [transactionId, setTransactionId] = useState("");
 
   // -------------------------------------------------------------------
   // Handler: Validate postalCode and auto-fill address fields
-  // Triggered only when user presses Enter in postalCode input.
   // -------------------------------------------------------------------
   const handlePincodeBlur = async () => {
     const { postalCode } = newAddress;
@@ -621,62 +497,13 @@ export default function Checkout() {
   };
 
   // -------------------------------------------------------------------
-  // Handler: Use Browser Geolocation and Reverse Geocoding API
-  // to auto-fill address fields when the button is clicked.
-  // -------------------------------------------------------------------
-  const handleUseCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          // Replace with your chosen reverse geocoding API and valid API key.
-          fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=YOUR_API_KEY`
-          )
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.results && data.results.length > 0) {
-                const addressComponents = data.results[0].address_components;
-                const getComponent = (type) =>
-                  addressComponents.find((component) =>
-                    component.types.includes(type)
-                  )?.long_name || "";
-                setNewAddress((prev) => ({
-                  ...prev,
-                  address: data.results[0].formatted_address,
-                  city: getComponent("locality"),
-                  state: getComponent("administrative_area_level_1"),
-                  country: getComponent("country"),
-                  postalCode: getComponent("postal_code"),
-                }));
-              }
-            })
-            .catch((err) => console.error("Error in reverse geocoding:", err));
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          alert("Unable to retrieve your location.");
-        }
-      );
-    } else {
-      alert("Geolocation is not supported by this browser.");
-    }
-  };
-
-  useEffect(() => {
-    setAddresses(address);
-  }, [address]);
-
-  // -------------------------------------------------------------------
   // Handler: Save new address or update existing address in database
   // -------------------------------------------------------------------
   const saveAddressInDb = async (address) => {
-    console.log(address);
     try {
-      const res = await db
+      await db
         .insert(UserAddressTable)
         .values({ ...address, userId: userdetails.id });
-      console.log(res);
     } catch (error) {
       console.log(error);
     }
@@ -684,10 +511,9 @@ export default function Checkout() {
 
   const updatedAddressesInDb = async (address) => {
     try {
-      const res = await db
+      await db
         .update(UserAddressTable)
         .set({ ...address, userId: userdetails.id });
-      console.log("updated");
     } catch (error) {
       console.log(error);
     }
@@ -697,10 +523,26 @@ export default function Checkout() {
   // Handler: Save or update address locally and in the database
   // -------------------------------------------------------------------
   const handleSaveAddress = () => {
-    if (editingIndex === null && addresses.length >= 4) {
-      alert("You can only save up to 4 addresses.");
+    const requiredFields = [
+      "name",
+      "phone",
+      "address",
+      "city",
+      "postalCode",
+      "state",
+      "country",
+    ];
+    const isEmptyField = requiredFields.some(
+      (field) => !newAddress[field] || newAddress[field].trim() === ""
+    );
+
+    if (isEmptyField) {
+      alert(
+        "Please fill in all the required fields before saving the address."
+      );
       return;
     }
+
     if (editingIndex !== null) {
       const updatedAddresses = [...addresses];
       updatedAddresses[editingIndex] = newAddress;
@@ -708,12 +550,26 @@ export default function Checkout() {
       setSelectedAddress(newAddress);
       updatedAddressesInDb(newAddress);
       setEditingIndex(null);
+    } else if (selectedAddress) {
+      const index = addresses.findIndex(
+        (addr) => addr.postalCode === selectedAddress.postalCode
+      );
+      if (index !== -1) {
+        const updatedAddresses = [...addresses];
+        updatedAddresses[index] = newAddress;
+        setAddresses(updatedAddresses);
+        updatedAddressesInDb(newAddress);
+        setSelectedAddress(newAddress);
+      } else {
+        setAddresses([...addresses, newAddress]);
+        saveAddressInDb(newAddress);
+        setSelectedAddress(newAddress);
+      }
     } else {
       setAddresses([...addresses, newAddress]);
       saveAddressInDb(newAddress);
       setSelectedAddress(newAddress);
     }
-    // Reset the newAddress form
     setNewAddress({
       name: "",
       phone: "",
@@ -736,14 +592,26 @@ export default function Checkout() {
   // -------------------------------------------------------------------
   // Handler: Delete an address and clear selection if needed
   // -------------------------------------------------------------------
-  const handleDeleteAddress = (index) => {
-    const updatedAddresses = addresses.filter((_, i) => i !== index);
-    setAddresses(updatedAddresses);
-    if (
-      selectedAddress &&
-      addresses[index].postalCode === selectedAddress.postalCode
-    ) {
-      setSelectedAddress(null);
+  const handleDeleteAddress = async (index) => {
+    const addressToDelete = addresses[index];
+    try {
+      await db
+        .delete(UserAddressTable)
+        .where(eq(UserAddressTable.postalCode, addressToDelete.postalCode));
+
+      const updatedAddresses = addresses.filter((_, i) => i !== index);
+      setAddresses(updatedAddresses);
+
+      if (
+        selectedAddress &&
+        addressToDelete.postalCode === selectedAddress.postalCode
+      ) {
+        setSelectedAddress(null);
+      }
+      toast.success("Address deleted successfully.");
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      toast.error("Failed to delete address. Please try again.");
     }
   };
 
@@ -772,7 +640,7 @@ export default function Checkout() {
           totalAmount: ordersTable.totalAmount,
           createdAt: ordersTable.createdAt,
         });
-      const res1 = await db
+      await db
         .insert(addressTable)
         .values({
           userId: userdetails.id,
@@ -789,11 +657,13 @@ export default function Checkout() {
         productId: item.product.id,
         quantity: item.product.quantity,
         price: Math.floor(
-          item.product.oprice - (item.product.discount / 100) * item.product.oprice
+          item.product.oprice -
+            (item.product.discount / 100) * item.product.oprice
         ),
         totalPrice:
           Math.floor(
-            item.product.oprice - (item.product.discount / 100) * item.product.oprice
+            item.product.oprice -
+              (item.product.discount / 100) * item.product.oprice
           ) * item.product?.quantity,
       }));
 
@@ -804,7 +674,6 @@ export default function Checkout() {
       toast.success("Order Placed");
       setCart([]);
       setLoading(false);
-
       setStep(4);
     } catch (error) {
       console.log(error);
@@ -819,7 +688,6 @@ export default function Checkout() {
       alert("No items selected for the order.");
       return;
     }
-
     const newOrder = {
       id: Date.now(),
       date: new Date().toISOString().split("T")[0],
@@ -829,7 +697,6 @@ export default function Checkout() {
       items: selectedItems,
     };
     createorder(newOrder, selectedAddress);
-
     setOrders((prevOrders) => [...prevOrders, newOrder]);
     localStorage.removeItem("selectedItems");
   };
@@ -841,7 +708,6 @@ export default function Checkout() {
     if (step === 1 && !selectedAddress) {
       if (newAddress.name && newAddress.address && newAddress.postalCode) {
         setSelectedAddress(newAddress);
-        // Reset newAddress form after selection
         setNewAddress({
           name: "",
           phone: "",
@@ -868,6 +734,10 @@ export default function Checkout() {
   };
 
   const resetCheckout = () => setStep(1);
+
+  useEffect(() => {
+    setAddresses(address);
+  }, [address]);
 
   return (
     <div className="checkout-wrapper">
@@ -896,6 +766,8 @@ export default function Checkout() {
             addresses={addresses}
             selectedAddress={selectedAddress}
             setSelectedAddress={setSelectedAddress}
+            selectedAddressIndex={selectedAddressIndex}
+            setSelectedAddressIndex={setSelectedAddressIndex}
             newAddress={newAddress}
             setNewAddress={setNewAddress}
             handleSaveAddress={handleSaveAddress}
@@ -904,7 +776,6 @@ export default function Checkout() {
             handleDeleteAddress={handleDeleteAddress}
             addressFieldsOrder={addressFieldsOrder}
             editingIndex={editingIndex}
-            handleUseCurrentLocation={handleUseCurrentLocation}
           />
         )}
         {step === 2 && (
@@ -931,6 +802,7 @@ export default function Checkout() {
             discountCalculated={discountCalculated}
             deliveryCharge={deliveryCharge}
             totalPrice={totalPrice}
+            selectedAddress={selectedAddress}
           />
         )}
         {step === 4 && <Confirmation resetCheckout={resetCheckout} />}
