@@ -143,7 +143,8 @@ function AddressSelection({
 // -------------------------------------------------------------------
 function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
   const originalTotal = selectedItems.reduce(
-    (acc, item) => acc + Math.floor(item.product.oprice) * (item.quantity || 1),
+    (acc, item) =>
+      acc + Math.floor(item.product.oprice) * (item?.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
@@ -151,9 +152,9 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
       acc +
       Math.floor(
         item.product.oprice -
-          (item.product.oprice * item.product.discount) / 100
+          (item?.product.oprice * item?.product.discount) / 100
       ) *
-        (item.quantity || 1),
+        (item?.quantity || 1),
     0
   );
   const discountCalculated = originalTotal - productTotal;
@@ -200,10 +201,7 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
         <p>
           <span>
             Products (
-            {selectedItems.reduce(
-              (acc, item) => acc + (item.product.quantity || 1),
-              0
-            )}{" "}
+            {selectedItems.reduce((acc, item) => acc + (item.quantity || 1), 0)}{" "}
             items):
           </span>
           <span>₹{productTotal}</span>
@@ -541,7 +539,7 @@ export default function Checkout() {
       acc +
       (item?.product?.oprice -
         (item?.product?.discount / 100) * item?.product?.oprice) *
-        item?.product?.quantity,
+        item.quantity,
     0
   );
   const discountCalculated = originalTotal - productTotal;
