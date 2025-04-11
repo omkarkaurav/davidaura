@@ -94,5 +94,14 @@ export const orderItemsTable = pgTable('order_items', {
 });
 
 
+export const querytable=pgTable("query",{
+  name: text("name").notNull(),
+   email: text("email").notNull(),
+    phone: text("phone").notNull(),
+     message:text("message").notNull(),
+     createdAt:  text('created_at').notNull()
+})
+
+
 
 

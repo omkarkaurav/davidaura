@@ -39,6 +39,8 @@ const AdminPanel = () => {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [querySearch, setQuerySearch] = useState("");
 
+  const { getquery } = useContext(ContactContext);
+
   // Instead of dummy users, fetch users from the database
   const [usersList, setUsersList] = useState([]);
 
@@ -52,6 +54,7 @@ const AdminPanel = () => {
       }
     };
     fetchUsers();
+    getquery();
   }, []);
 
   // Enrich users with orders from context
@@ -132,8 +135,12 @@ const AdminPanel = () => {
         prevProducts.filter((p) => p.id !== productId)
       );
       try {
-        await db.delete(orderItemsTable).where(eq(orderItemsTable.productId, productId));
-        await db.delete(addToCartTable).where(eq(addToCartTable.productId, productId));
+        await db
+          .delete(orderItemsTable)
+          .where(eq(orderItemsTable.productId, productId));
+        await db
+          .delete(addToCartTable)
+          .where(eq(addToCartTable.productId, productId));
         await db.delete(productsTable).where(eq(productsTable.id, productId));
         console.log("Product and related cart entries deleted successfully");
       } catch (error) {
@@ -175,12 +182,16 @@ const AdminPanel = () => {
   };
 
   // --- Order Functions ---
-  const sortedOrders = orders.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const sortedOrders = orders
+    .slice()
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const statusFilteredOrders =
     orderStatusTab === "All"
       ? sortedOrders
-      : sortedOrders.filter((order) =>
-          order.status.trim().toLowerCase() === orderStatusTab.trim().toLowerCase()
+      : sortedOrders.filter(
+          (order) =>
+            order.status.trim().toLowerCase() ===
+            orderStatusTab.trim().toLowerCase()
         );
   const searchedOrders = statusFilteredOrders.filter(
     (order) =>
@@ -607,17 +618,21 @@ const AdminPanel = () => {
             <div className="orders-header">
               <span>Total Orders: {orders.length}</span>
               <div className="order-tabs">
-                {["All", "Order Placed", "Processing", "Shipped", "Delivered"].map(
-                  (status) => (
-                    <button
-                      key={status}
-                      onClick={() => setOrderStatusTab(status)}
-                      className={orderStatusTab === status ? "active" : ""}
-                    >
-                      {status}
-                    </button>
-                  )
-                )}
+                {[
+                  "All",
+                  "Order Placed",
+                  "Processing",
+                  "Shipped",
+                  "Delivered",
+                ].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setOrderStatusTab(status)}
+                    className={orderStatusTab === status ? "active" : ""}
+                  >
+                    {status}
+                  </button>
+                ))}
               </div>
               <div className="order-search">
                 <input
@@ -694,16 +709,16 @@ const AdminPanel = () => {
                         return (
                           <div className="progress-steps">
                             {steps.map((step, index) => {
-                              const isCompleted = order.progressStep > index - 1;
-                              const isCurrent = order.progressStep === index + 1;
+                              const isCompleted =
+                                order.progressStep > index - 1;
+                              const isCurrent =
+                                order.progressStep === index + 1;
                               return (
                                 <div key={index} className="step-wrapper">
                                   <div
                                     className={`step-samosa ${
                                       isCompleted ? "completed-pizza" : ""
-                                    } ${
-                                      isCurrent ? "current-burger" : ""
-                                    }`}
+                                    } ${isCurrent ? "current-burger" : ""}`}
                                   >
                                     <div
                                       className={`step-number-lassi ${
@@ -762,7 +777,8 @@ const AdminPanel = () => {
                       {user.orders.map((order) => (
                         <div key={order.orderId} className="user-order">
                           <span>
-                            Order #{order.orderId} - ₹{order.totalAmount} - {order.status}
+                            Order #{order.orderId} - ₹{order.totalAmount} -{" "}
+                            {order.status}
                           </span>
                         </div>
                       ))}
@@ -888,7 +904,8 @@ const OrderDetailsPopup = ({ order, onClose }) => {
           <strong>Status:</strong> {order.status}
         </p>
         <p>
-          <strong>Address:</strong> {order.address}, {order.city}, {order.state}, {order.zip}, {order.country}
+          <strong>Address:</strong> {order.address}, {order.city}, {order.state}
+          , {order.zip}, {order.country}
         </p>
         <p>
           <strong>Products:</strong>
