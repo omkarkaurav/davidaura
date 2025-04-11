@@ -1,6 +1,6 @@
 // src/Components/Navbar.js
 
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 // ------------------------------------------------------------------
@@ -8,10 +8,10 @@ import { useNavigate } from "react-router-dom";
 // ------------------------------------------------------------------
 import UserIcon from "../assets/images/blond-man-with-eyeglasses-icon-isolated.png";
 import MyOrderIcon from "../assets/order-svgrepo-com.svg";
-// import AddressIcon from "../assets/address-location-map-svgrepo-com.svg";
 import MailUsIcon from "../assets/mail-svgrepo-com.svg";
 import LogOutIcon from "../assets/logout-svgrepo-com.svg";
 import CartIcon from "../assets/cart-svgrepo-com.svg";
+import AdminIcon from "../assets/admin.png";
 import WishlistIcon from "../assets/wishlist-svgrepo-com.svg";
 import ProfileIcon from "../assets/user-avatar-svgrepo-com.svg";
 
@@ -30,7 +30,7 @@ const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
   const navigate = useNavigate();
   const { isSignedIn, user } = useUser();
-  const { signOut } = useClerk(); // Access signOut from useClerk
+  const { signOut } = useClerk();
 
   const isLoggedIn = isSignedIn;
 
@@ -40,6 +40,9 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   // State to control navbar visibility (hide on scroll down, show on scroll up)
   const [navbarVisible, setNavbarVisible] = useState(true);
+
+  // Create a ref for the profile container
+  const profileContainerRef = useRef(null);
 
   // Update cart count when cart changes
   useEffect(() => {
@@ -67,7 +70,8 @@ const Navbar = () => {
   useEffect(() => {
     let lastScrollTop = 0;
     const handleScroll = () => {
-      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+      const currentScroll =
+        window.pageYOffset || document.documentElement.scrollTop;
       if (currentScroll > lastScrollTop) {
         setNavbarVisible(false);
       } else {
@@ -78,6 +82,33 @@ const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Close profile dropdown on clicking outside of it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        profileContainerRef.current &&
+        !profileContainerRef.current.contains(event.target)
+      ) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileContainerRef]);
+
+  // Close profile dropdown on scrolling
+  useEffect(() => {
+    const handleScrollProfile = () => {
+      if (isProfileOpen) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScrollProfile);
+    return () => window.removeEventListener("scroll", handleScrollProfile);
+  }, [isProfileOpen]);
 
   return (
     <header>
@@ -104,7 +135,9 @@ const Navbar = () => {
             <li>
               <a
                 onClick={() =>
-                  document.getElementById("products-section").scrollIntoView({ behavior: "smooth" })
+                  document
+                    .getElementById("products-section")
+                    .scrollIntoView({ behavior: "smooth" })
                 }
               >
                 Collection
@@ -113,7 +146,9 @@ const Navbar = () => {
             <li>
               <a
                 onClick={() =>
-                  document.getElementById("shop-section").scrollIntoView({ behavior: "smooth" })
+                  document
+                    .getElementById("shop-section")
+                    .scrollIntoView({ behavior: "smooth" })
                 }
               >
                 Shop
@@ -129,7 +164,11 @@ const Navbar = () => {
             <div className="wishlist-icon">
               <a onClick={() => navigate("/wishlist")}>
                 <button id="wishlist-icon">
-                  <img className="wishlist-img" src={WishlistIcon} alt="wishlist" />
+                  <img
+                    className="wishlist-img"
+                    src={WishlistIcon}
+                    alt="wishlist"
+                  />
                   <span id="wishlist-count">
                     {wishlist.length >= 0 ? wishlist.length : 0}
                   </span>
@@ -141,7 +180,10 @@ const Navbar = () => {
               <a onClick={() => navigate("/cart")}>
                 <button id="cart-icon">
                   <img src={CartIcon} alt="Cart" />
-                  <span id="cart-count" className={`${!cartCount && "animate-pulse"}`}>
+                  <span
+                    id="cart-count"
+                    className={`${!cartCount && "animate-pulse"}`}
+                  >
                     {cartCount >= 0 ? cartCount : ""}
                   </span>
                 </button>
@@ -150,7 +192,10 @@ const Navbar = () => {
             {/* Login/SignUp or Profile */}
             {isLoggedIn ? (
               <div className="profile-icon" id="profile-btn">
-                <button id="profileButton" onClick={() => setIsProfileOpen(!isProfileOpen)}>
+                <button
+                  id="profileButton"
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                >
                   <img src={ProfileIcon} alt="Profile" />
                 </button>
               </div>
@@ -164,38 +209,55 @@ const Navbar = () => {
 
             {/* Profile Dropdown Content */}
             {isLoggedIn && user && (
-              <div className="profile-container">
-                <div className={`profile-content ${isProfileOpen ? "active" : "hidden"}`} id="profileContent">
-                  <div className="profile-info">
+              <div className="profile-container" ref={profileContainerRef}>
+                <div
+                  className={`profile-content ${
+                    isProfileOpen ? "active" : "hidden"
+                  }`}
+                  id="profileContent"
+                >
+                  <div className="desktop-profile-info">
                     <img
-                      src={user.profileImageUrl || "/assets/default-avatar.png"}
+                      src={UserIcon}
                       alt="User Image"
-                      className="profile-img"
-                      id="profile-img"
+                      className="mob-profile-img"
+                      id="mob-profile-img"
                     />
                     <div className="user-data">
                       <h3 id="profile-name">{user.fullName}</h3>
                       <p id="profile-email">
-                        {user.primaryEmailAddress?.emailAddress ||
-                          (user.emailAddresses && user.emailAddresses[0]?.emailAddress) ||
+                        {user.primaryPhoneNumber?.phoneNumber ||
+                          (user.phoneNumbers &&
+                            user.phoneNumbers[0]?.phoneNumber) ||
                           "N/A"}
                       </p>
                     </div>
                   </div>
                   <ul>
-                    <li>
-                      <a onClick={() => navigate("/myorder")}>My Orders</a>
+                    <li onClick={() => navigate("/myorder")}>
+                      <img src={MyOrderIcon} alt="" />
+                      <a>My Orders</a>
                     </li>
-                    <li id="logout">
-                      <a
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          await signOut({ redirectUrl: "/" });
-                        }}
-                        id="logout-btn"
-                      >
-                        Log Out
-                      </a>
+                    <li onClick={() => navigate("/contact")}>
+                      <img src={MailUsIcon} alt="" />
+                      <a>Contact Us</a>
+                    </li>
+                    {isLoggedIn && user && user.isAdmin && (
+                      <li onClick={() => navigate("/admin")}>
+                        <img src={AdminIcon} alt="" />
+                        <a>Admin Panel</a>
+                      </li>
+                    )}
+                    <li
+                      className="logout"
+                      id="logout-2"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        await signOut({ redirectUrl: "/" });
+                      }}
+                    >
+                      <a id="logout-btn-2">Log Out</a>
+                      <img src={LogOutIcon} alt="" />
                     </li>
                   </ul>
                 </div>
@@ -207,13 +269,19 @@ const Navbar = () => {
               <div className="mobile-view">
                 <div className="menu-icon" onClick={toggleSidebar}>
                   <div className="menu-container">
-                    <div className={`hamburger ${isOpen ? "active" : ""}`} id="hamburger">
+                    <div
+                      className={`hamburger ${isOpen ? "active" : ""}`}
+                      id="hamburger"
+                    >
                       <div className="line"></div>
                       <div className="line"></div>
                       <div className="line"></div>
                     </div>
                   </div>
-                  <div className={`sidebar ${isOpen ? "open" : ""}`} id="sidebar">
+                  <div
+                    className={`sidebar ${isOpen ? "open" : ""}`}
+                    id="sidebar"
+                  >
                     <div className="profile-info">
                       <img
                         src={UserIcon}
@@ -221,20 +289,22 @@ const Navbar = () => {
                         className="mob-profile-img"
                         id="mob-profile-img"
                       />
-                      <div className="user-data">
-                        <h3 id="mob-profile-name">
-                          {user?.fullName || "User"}
-                        </h3>
+                      <div className="user-data" style={{ visibility: isLoggedIn ? "visible" : "hidden" }}>
+                        <h3 id="mob-profile-name">{user?.fullName}</h3>
                         <p id="mob-profile-email">
-                          {user?.primaryEmailAddress?.emailAddress ||
-                            (user?.emailAddresses && user.emailAddresses[0]?.emailAddress) ||
+                          {user?.primaryPhoneNumber?.phoneNumber ||
+                            (user?.phoneNumbers &&
+                              user.phoneNumbers[0]?.phoneNumber) ||
                             "N/A"}
                         </p>
                       </div>
                       {!isLoggedIn && (
                         <div id="loginSignupButtons-2">
                           <button id="loginButton">
-                            <a id="login-signup" onClick={() => navigate("/login")}>
+                            <a
+                              id="login-signup"
+                              onClick={() => navigate("/login")}
+                            >
                               Login / Sign Up
                             </a>
                           </button>
@@ -253,10 +323,12 @@ const Navbar = () => {
                           <img src={CartIcon} alt="" />
                           <a>Cart</a>
                         </li>
-                        <li onClick={() => navigate("/admin")}>
-                          <img src={CartIcon} alt="" />
-                          <a>Admin</a>
-                        </li>
+                        {isLoggedIn && user && user.isAdmin && (
+                          <li onClick={() => navigate("/admin")}>
+                            <img src={AdminIcon} alt="" />
+                            <a>Admin Panel</a>
+                          </li>
+                        )}
                         <li onClick={() => navigate("/contact")}>
                           <img src={MailUsIcon} alt="" />
                           <a>Contact Us</a>

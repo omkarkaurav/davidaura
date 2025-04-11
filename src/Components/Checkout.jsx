@@ -388,7 +388,7 @@ function Confirmation({ resetCheckout }) {
     <div className="confirmation">
       <h2>Order Confirmed!</h2>
       <p>Thank you for your purchase. Your order is being processed.</p>
-      <button onClick={() => navigate("/admin")} className="btn btn-secondary">
+      <button onClick={() => navigate("/")} className="btn btn-secondary">
         Back to Home
       </button>
       <button onClick={() => navigate("/myorder")} className="btn btn-primary">

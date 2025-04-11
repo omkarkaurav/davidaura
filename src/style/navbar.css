@@ -31,7 +31,7 @@ header {
   max-width: 1200px;
   display: flex;
   justify-content: space-between;
-  padding: 0.2rem 0rem 0rem 1rem;
+  padding: 0.2rem 0.5rem 0rem 1rem;
   align-items: center;
   position: fixed;
   margin-top: 10px;
@@ -159,9 +159,8 @@ header {
   align-items: center;
   gap: 2rem;
   justify-content: space-between;
-  /* background-color: var(--blue); */
   padding: 5px 30px 5px 30px;
-  /* border-radius: 99px; */
+
 }
 
 /* Navigation Links */
@@ -185,24 +184,25 @@ header {
 /* Part-3: Icons */
 .part-3 {
   display: flex;
-  gap: 0.5rem;
 }
 .part-3 .icons {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .part-3 .icons .profile-icon {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  
 }
 
 /* Wishlist & Cart Icons */
 .wishlist-icon {
-  width: 50px;
+  width: 70px;
+  margin: 0;
 }
+
 .wishlist-icon a {
   text-decoration: none;
 }
@@ -219,13 +219,10 @@ header {
 #wishlist-count {
   background-color: transparent;
   color: black;
-  border-radius: 50%;
-  padding: 5px 3px;
-  font-size: 14px;
   font-weight: bold;
 }
 .cart-icon {
-  width: 57px;
+  width: 70px;
 }
 .cart-icon a {
   text-decoration: none;
@@ -235,7 +232,6 @@ header {
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -264,9 +260,10 @@ header {
   top: 55px;
   right: 0;
   background: white;
-  border-radius: 22px;
-  width: 270px;
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  min-width: 300px;
+  padding: 10px ;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   opacity: 0;
   transform: translateY(-10px);
@@ -279,26 +276,25 @@ header {
   transform: translateY(0);
   visibility: visible;
 }
-
+.desktop-profile-info img{
+  width: 100px;
+  align-self: center;
+  margin-top: 10px;
+  border-radius: 42px;
+}
 /* Profile Info */
-.profile-info {
+.desktop-profile-info {
   width: 100%;
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */
   justify-content: space-between;
+  align-items: center;
   text-align: left;
   padding: 5px;
   font-size: 15px;
   gap: 5px;
 }
-.profile-info img {
-  width: 70px;
-  height: 70px;
-  border-radius: 6px;
-  margin-top: 5px;
-  align-self: flex-start;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.2);
-}
+
 .user-data {
   width: 100%;
   display: flex;
@@ -306,12 +302,9 @@ header {
   gap: 0.3rem;
   font-weight: bold;
   align-items: center;
+  margin-bottom: 15px;
 }
-.user-data input {
-  padding: 5px;
-  border-radius: 6px;
-  border: 1px solid rgb(224, 224, 224);
-}
+
 
 /* List Items in Profile Content */
 .profile-content ul {
@@ -323,7 +316,14 @@ header {
   padding: 12px 15px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
-  transition: background 0.5s ease;
+  transition: all 0.1s ;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.profile-content ul li img{
+  width: 30px;
 }
 .profile-content ul li a {
   text-decoration: none;
@@ -333,10 +333,10 @@ header {
   display: block;
 }
 .profile-content ul li:hover {
-  background: #333;
+  background: #e6e6e6;
 }
 .profile-content ul li:hover a {
-  color: white;
+  color: rgb(0, 0, 0);
   font-weight: bold;
 }
 
@@ -478,8 +478,8 @@ header {
     display: none;
   }
 
-  .profile-container {
-    /* display: none; */
+  .profile-icon {
+    display: none !important;
   }
 
   .desktop-login-signup {
@@ -492,9 +492,7 @@ header {
   .cart-icon {
     display: none;
   }
-  .profile-icon {
-    /* display: none; */
-  }
+
 
   .part-1 {
     font-size: 1rem;
@@ -513,12 +511,10 @@ header {
 
   .sidebar #loginSignupButtons {
     display: block !important;
-    /* align-self: flex-end; */
   }
 
   /* Profile Info */
   .profile-info {
-    /* height: 120px; */
     width: 100%;
     display: flex;
     flex-direction: column;

@@ -4,11 +4,8 @@ import ProductImage from "../assets/images/mockup-empty-perfume-bottle-perfume-b
 import "../style/adminPanel.css";
 import { OrderContext } from "../contexts/OrderContext";
 import { ProductContext } from "../contexts/productContext";
-import { ContactContext } from "../contexts/ContactContext"; // Import ContactContext
-// import { CartContext } from "../contexts/CartContext"; // Import ContactContext
-// import useCloudinaryUpload from "../utils/Usecloudinary";
+import { ContactContext } from "../contexts/ContactContext";
 import { db } from "../../configs/index";
-
 import { useUser } from "@clerk/clerk-react";
 import { eq } from "drizzle-orm";
 import { useNavigate } from "react-router-dom";
@@ -23,49 +20,52 @@ import ImageUploadModal from "./ImageUploadModal";
 import { UserContext } from "../contexts/UserContext";
 import { toast, ToastContainer } from "react-toastify";
 
-// Dummy data for coupons (if not using global state for coupons)
-const dummyCoupons = [
-  { id: 1, code: "DISCOUNT10", discount: 10 },
-  { id: 2, code: "SAVE20", discount: 20 },
-];
-
-// Dummy users data for demonstration (if needed)
-const dummyUsers = [
-  { id: 1, name: "John Doe", phone: "1234567890" },
-  { id: 2, name: "Jane Smith", phone: "9876543210" },
-];
-
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState("products");
-  // const { uploadImage, imageUrl, loading } = useCloudinaryUpload();
   const [openModal, setOpenModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  // Use global product state from ProductContext
   const { products, setProducts } = useContext(ProductContext);
-  const [coupons, setCoupons] = useState(dummyCoupons);
+  const [coupons, setCoupons] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingCoupon, setEditingCoupon] = useState(null);
   const navigate = useNavigate();
-  // Get orders from OrderContext
   const { orders, setOrders, getorders } = useContext(OrderContext);
-  // const {userdetails}=useContext(UserContext)
-
-  // Get queries from ContactContext
   const { queries } = useContext(ContactContext);
   const { user } = useUser();
-  // New state for orders filtering and search (Orders tab)
   const [orderStatusTab, setOrderStatusTab] = useState("All");
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [userkiDetails, setUserkiDetails] = useState([]);
-
-  // New state for user search (Users tab)
   const [userSearchQuery, setUserSearchQuery] = useState("");
-
-  // New state for query search (Queries tab)
   const [querySearch, setQuerySearch] = useState("");
 
-  // Generate new IDs for products or coupons
+  // Instead of dummy users, fetch users from the database
+  const [usersList, setUsersList] = useState([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await db.select().from(usersTable);
+        setUsersList(res);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Enrich users with orders from context
+  const usersWithOrders = usersList.map((user) => ({
+    ...user,
+    orders: orders.filter((order) => order.userId === user.id),
+  }));
+
+  const filteredUsers = usersWithOrders.filter(
+    (user) =>
+      user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.phone.includes(userSearchQuery)
+  );
+
   const generateNewId = (list) =>
     list.length > 0 ? Math.max(...list.map((item) => item.id)) + 1 : 1;
 
@@ -76,22 +76,26 @@ const AdminPanel = () => {
         .from(usersTable)
         .where(eq(usersTable.phone, user?.primaryPhoneNumber?.phoneNumber));
       setUserkiDetails(res[0]);
-      res[0].role != "admin" && navigate("/");
+      if (res[0].role !== "admin") {
+        navigate("/");
+      }
     } catch (error) {
       console.log(error);
     }
   };
 
   useEffect(() => {
-    user && userdetails();
+    if (user) {
+      userdetails();
+    }
   }, [user]);
+
   useEffect(() => {
     getorders();
   }, []);
 
   // --- Product Functions ---
   const handleProductUpdate = async (updatedProduct) => {
-    // uploadImage(updatedProduct.img);
     try {
       const res = await db
         .insert(productsTable)
@@ -100,18 +104,15 @@ const AdminPanel = () => {
           size: updatedProduct.size,
           discount: updatedProduct.discount,
           price: updatedProduct.oprice,
-          imageurl: imageUrl,
+          imageurl: updatedProduct.imageurl,
         })
         .returning(productsTable);
-      // console.log(res);
       toast.success("Product added Successfully");
     } catch (error) {
-      // console.log(error);
       const { message } = error;
       toast.error(message);
     }
 
-    console.log(updatedProduct);
     setProducts((prevProducts) => {
       const exists = prevProducts.find((p) => p.id === updatedProduct.id);
       return exists
@@ -124,36 +125,21 @@ const AdminPanel = () => {
   };
 
   const handleProductDelete = async (productId) => {
-    if (userkiDetails?.role != "admin") return;
-    console.log(productId);
+    if (userkiDetails?.role !== "admin") return;
     setLoading(true);
     if (window.confirm("Are you sure you want to delete this product?")) {
       setProducts((prevProducts) =>
         prevProducts.filter((p) => p.id !== productId)
       );
       try {
-        try {
-          await db
-            .delete(orderItemsTable)
-            .where(eq(orderItemsTable.productId, productId));
-
-          // Step 2: Delete related cart items
-          await db
-            .delete(addToCartTable)
-            .where(eq(addToCartTable.productId, productId));
-
-          // Step 3: Now, safely delete the product
-          await db.delete(productsTable).where(eq(productsTable.id, productId));
-
-          console.log("Product and related cart entries deleted successfully");
-        } catch (error) {
-          console.error("Error deleting product:", error);
-        }
-
-        setLoading(false);
+        await db.delete(orderItemsTable).where(eq(orderItemsTable.productId, productId));
+        await db.delete(addToCartTable).where(eq(addToCartTable.productId, productId));
+        await db.delete(productsTable).where(eq(productsTable.id, productId));
+        console.log("Product and related cart entries deleted successfully");
       } catch (error) {
-        console.log(error);
+        console.error("Error deleting product:", error);
       }
+      setLoading(false);
     }
   };
 
@@ -178,7 +164,7 @@ const AdminPanel = () => {
 
   const updateorderstatus = async (orderId, newStatus, newProgressStep) => {
     try {
-      const res = await db
+      await db
         .update(ordersTable)
         .set({ status: newStatus, progressStep: newProgressStep })
         .where(eq(ordersTable.id, orderId));
@@ -187,7 +173,21 @@ const AdminPanel = () => {
       console.log(error);
     }
   };
+
   // --- Order Functions ---
+  const sortedOrders = orders.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const statusFilteredOrders =
+    orderStatusTab === "All"
+      ? sortedOrders
+      : sortedOrders.filter((order) =>
+          order.status.trim().toLowerCase() === orderStatusTab.trim().toLowerCase()
+        );
+  const searchedOrders = statusFilteredOrders.filter(
+    (order) =>
+      order.orderId.toString().includes(orderSearchQuery) ||
+      order.createdAt.includes(orderSearchQuery)
+  );
+
   const handleOrderStatusUpdate = (orderId, newStatus, newProgressStep) => {
     updateorderstatus(orderId, newStatus, newProgressStep);
     const updatedOrders = orders.map((order) =>
@@ -198,42 +198,13 @@ const AdminPanel = () => {
     setOrders(updatedOrders);
   };
 
-  // --- Users Section (Optional) ---
-  // Enrich dummy users with their orders (if orders have a userId property)
-  const users = dummyUsers.map((user) => ({
-    ...user,
-    orders: orders.filter((order) => order.userId === user.id),
-  }));
-
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-      user.phone.includes(userSearchQuery)
-  );
-
-  // --- Orders Tab Filtering ---
-  const statusFilteredOrders =
-    orderStatusTab === "All"
-      ? orders
-      : orders.filter((order) => order.status === orderStatusTab);
-  const searchedOrders = statusFilteredOrders.filter(
-    (order) =>
-      order.orderId.toString().includes(orderSearchQuery) ||
-      order.date.includes(orderSearchQuery)
-  );
-
-  // --- Queries Tab Filtering ---
-  const filteredQueries = queries.filter(
-    (q) =>
-      q.email.toLowerCase().includes(querySearch.toLowerCase()) ||
-      q.phone.includes(querySearch)
-  );
   const handleorderdetails = (order) => {
     setSelectedOrder(order);
   };
+
   return (
     <div className="admin-panel">
-      <div className=" absolute">
+      <div className="absolute">
         <ToastContainer />
       </div>
       <h1>Admin Panel</h1>
@@ -246,8 +217,8 @@ const AdminPanel = () => {
       </nav>
 
       <div className="admin-content">
-        {/* Products Tab */}
         {openModal && <ImageUploadModal isopen={openModal} />}
+        {/* Products Tab */}
         {activeTab === "products" && (
           <div className="products-tab">
             <h2>Manage Products</h2>
@@ -287,19 +258,12 @@ const AdminPanel = () => {
                           accept="image/*"
                           onChange={(e) => {
                             const file = e.target.files[0];
-
                             if (file) {
-                              // Generate a preview URL
                               const imageUrl = URL.createObjectURL(file);
-
-                              // Update local state with preview
                               setEditingProduct({
                                 ...editingProduct,
-                                img: imageUrl, // Local preview
+                                imageurl: imageUrl,
                               });
-
-                              // Call the upload function
-                              uploadImage(file);
                             }
                           }}
                         />
@@ -405,7 +369,7 @@ const AdminPanel = () => {
                       <td>{editingProduct.id}</td>
                       <td>
                         <img
-                          src={editingProduct.img}
+                          src={editingProduct.imageurl}
                           alt={editingProduct.name}
                           width="50"
                           height="50"
@@ -416,19 +380,12 @@ const AdminPanel = () => {
                           accept="image/*"
                           onChange={(e) => {
                             const file = e.target.files[0];
-
                             if (file) {
-                              // Generate a preview URL
                               const imageUrl = URL.createObjectURL(file);
-
-                              // Update local state with preview
                               setEditingProduct({
                                 ...editingProduct,
-                                img: imageUrl, // Local preview
+                                imageurl: imageUrl,
                               });
-
-                              // Call the upload function
-                              uploadImage(file);
                             }
                           }}
                         />
@@ -650,21 +607,17 @@ const AdminPanel = () => {
             <div className="orders-header">
               <span>Total Orders: {orders.length}</span>
               <div className="order-tabs">
-                {[
-                  "All",
-                  "Order Placed",
-                  "Processing",
-                  "Shipped",
-                  "Delivered",
-                ].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setOrderStatusTab(status)}
-                    className={orderStatusTab === status ? "active" : ""}
-                  >
-                    {status}
-                  </button>
-                ))}
+                {["All", "Order Placed", "Processing", "Shipped", "Delivered"].map(
+                  (status) => (
+                    <button
+                      key={status}
+                      onClick={() => setOrderStatusTab(status)}
+                      className={orderStatusTab === status ? "active" : ""}
+                    >
+                      {status}
+                    </button>
+                  )
+                )}
               </div>
               <div className="order-search">
                 <input
@@ -676,143 +629,113 @@ const AdminPanel = () => {
               </div>
             </div>
 
-            {(() => {
-              const filteredOrders =
-                orderStatusTab === "All"
-                  ? orders
-                  : orders.filter((order) => order.status === orderStatusTab);
-              const searchedOrders = filteredOrders.filter(
-                (order) =>
-                  order.orderId.toString().includes(orderSearchQuery) ||
-                  order.createdAt.includes(orderSearchQuery)
-              );
-
-              return searchedOrders.length > 0 ? (
-                searchedOrders.map((order) => (
-                  <div key={order.orderId} className="order-card-admin">
-                    <h3>Order #{order.orderId}</h3>
-                    <p>
-                      <strong>Date:</strong> {order.createdAt}
-                    </p>
-                    <p>
-                      <strong>Total:</strong> ₹{order.totalAmount}
-                    </p>
-                    <p>
-                      <strong>Current Status:</strong> {order.status || "N/A"}
-                    </p>
-
-                    {/* Status Selection */}
-                    <div>
-                      <label>
-                        Update Status:
-                        <select
-                          value={order.status}
-                          onChange={(e) =>
-                            handleOrderStatusUpdate(
-                              order.id,
-                              e.target.value,
-                              order.progressStep
-                            )
-                          }
-                        >
-                          <option value="Order Placed">Order Placed</option>
-                          <option value="Processing">Processing</option>
-                          <option value="Shipped">Shipped</option>
-                          <option value="Delivered">Delivered</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    {/* Progress Step Selection */}
-                    <div>
-                      <label>
-                        Progress Step:
-                        <select
-                          value={order.progressStep}
-                          onChange={(e) =>
-                            handleOrderStatusUpdate(
-                              order.orderId,
-                              order.status,
-                              parseInt(e.target.value)
-                            )
-                          }
-                        >
-                          <option value={0}>0</option>
-                          <option value={1}>1</option>
-                          <option value={2}>2</option>
-                          <option value={3}>3</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    {/* Progress Bar */}
-                    {order.progressStep && (
-                      <div className="order-progress">
-                        {(() => {
-                          const steps = [
-                            "Order Placed",
-                            "Processing",
-                            "Shipped",
-                            "Delivered",
-                          ];
-                          return (
-                            <div className="progress-steps ">
-                              {}
-                              {steps.map((step, index) => {
-                                const isCompleted =
-                                  order.progressStep > index - 1;
-                                const isCurrent =
-                                  order.progressStep === index + 1;
-
-                                return (
-                                  <div key={index} className="step-wrapper">
-                                    <div
-                                      className={`step-samosa ${
-                                        isCompleted ? "completed-pizza" : ""
-                                      } ${isCurrent ? "current-burger" : ""}`}
-                                    >
-                                      <div
-                                        className={`step-number-lassi  ${
-                                          order.progressStep > index
-                                            ? " bg-green-300 text-white"
-                                            : ""
-                                        } `}
-                                      >
-                                        {index + 1}
-                                      </div>
-                                      <div className="step-label">{step}</div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
-
-                    {/* See More Details Button */}
-                    <button
-                      className="view-details-btn-dhamaal "
-                      onClick={() => handleorderdetails(order)}
-                    >
-                      See More Details
-                    </button>
+            {searchedOrders.length > 0 ? (
+              searchedOrders.map((order) => (
+                <div key={order.orderId} className="order-card-admin">
+                  <h3>Order #{order.orderId}</h3>
+                  <p>
+                    <strong>Date:</strong> {order.createdAt}
+                  </p>
+                  <p>
+                    <strong>Total:</strong> ₹{order.totalAmount}
+                  </p>
+                  <p>
+                    <strong>Current Status:</strong> {order.status || "N/A"}
+                  </p>
+                  <div>
+                    <label>
+                      Update Status:
+                      <select
+                        value={order.status}
+                        onChange={(e) =>
+                          handleOrderStatusUpdate(
+                            order.id,
+                            e.target.value,
+                            order.progressStep
+                          )
+                        }
+                      >
+                        <option value="Order Placed">Order Placed</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                      </select>
+                    </label>
                   </div>
-                ))
-              ) : (
-                <p>No orders found.</p>
-              );
-            })()}
+                  <div>
+                    <label>
+                      Progress Step:
+                      <select
+                        value={order.progressStep}
+                        onChange={(e) =>
+                          handleOrderStatusUpdate(
+                            order.orderId,
+                            order.status,
+                            parseInt(e.target.value)
+                          )
+                        }
+                      >
+                        <option value={0}>0</option>
+                        <option value={1}>1</option>
+                        <option value={2}>2</option>
+                        <option value={3}>3</option>
+                      </select>
+                    </label>
+                  </div>
+                  {order.progressStep && (
+                    <div className="order-progress">
+                      {(() => {
+                        const steps = [
+                          "Order Placed",
+                          "Processing",
+                          "Shipped",
+                          "Delivered",
+                        ];
+                        return (
+                          <div className="progress-steps">
+                            {steps.map((step, index) => {
+                              const isCompleted = order.progressStep > index - 1;
+                              const isCurrent = order.progressStep === index + 1;
+                              return (
+                                <div key={index} className="step-wrapper">
+                                  <div
+                                    className={`step-samosa ${
+                                      isCompleted ? "completed-pizza" : ""
+                                    } ${
+                                      isCurrent ? "current-burger" : ""
+                                    }`}
+                                  >
+                                    <div
+                                      className={`step-number-lassi ${
+                                        order.progressStep > index
+                                          ? " bg-green-300 text-white"
+                                          : ""
+                                      }`}
+                                    >
+                                      {index + 1}
+                                    </div>
+                                    <div className="step-label">{step}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                  <button
+                    className="view-details-btn-dhamaal"
+                    onClick={() => handleorderdetails(order)}
+                  >
+                    See More Details
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p>No orders found.</p>
+            )}
           </div>
-        )}
-
-        {/* Popup for Order Details */}
-        {selectedOrder && (
-          <OrderDetailsPopup
-            order={selectedOrder}
-            onClose={() => setSelectedOrder(null)}
-          />
         )}
 
         {/* Users Tab */}
@@ -837,10 +760,9 @@ const AdminPanel = () => {
                     <div className="user-orders">
                       <h4>Orders:</h4>
                       {user.orders.map((order) => (
-                        <div key={order.orderIdid} className="user-order">
+                        <div key={order.orderId} className="user-order">
                           <span>
-                            Order #{order.orderId} - ₹{order.amount} -{" "}
-                            {order.status}
+                            Order #{order.orderId} - ₹{order.totalAmount} - {order.status}
                           </span>
                         </div>
                       ))}
@@ -853,6 +775,7 @@ const AdminPanel = () => {
             )}
           </div>
         )}
+
         {/* Queries Tab */}
         {activeTab === "queries" && (
           <div className="queries-tab">
@@ -866,7 +789,6 @@ const AdminPanel = () => {
               />
             </div>
             {(() => {
-              // Update filtering to check for email, phone, and date (if query.date exists)
               const filteredQueries = queries.filter(
                 (q) =>
                   q.email.toLowerCase().includes(querySearch.toLowerCase()) ||
@@ -940,7 +862,6 @@ const OrderDetailsPopup = ({ order, onClose }) => {
         <p>
           <strong>Phone:</strong> {order.phone}
         </p>
-
         <p>
           <strong>Payment Mode:</strong> {order.paymentMode}
         </p>
@@ -952,13 +873,10 @@ const OrderDetailsPopup = ({ order, onClose }) => {
             <option value="paid">Paid</option>
           </select>
         </p>
-
-        {/* Green Highlight for Paid Status */}
         {paymentStatus === "paid" && (
           <p className="paid-status">✅ Payment Successful</p>
         )}
-
-        {!(order.paymentMode == " Cash on Delivery") && (
+        {order.paymentMode !== " Cash on Delivery" && (
           <p>
             <strong>Transaction Id:</strong> {order.trasactionId}
           </p>
@@ -970,19 +888,16 @@ const OrderDetailsPopup = ({ order, onClose }) => {
           <strong>Status:</strong> {order.status}
         </p>
         <p>
-          <strong>Address:</strong> {order.address}, {order.city}, {order.state}
-          , {order.zip}, {order.country}
+          <strong>Address:</strong> {order.address}, {order.city}, {order.state}, {order.zip}, {order.country}
         </p>
         <p>
           <strong>Products:</strong>
           <ul>
-            {order.products.map((product) => {
-              return (
-                <li key={product.productId}>
-                  {product.productName} (x{product.quantity}) - ₹{product.price}
-                </li>
-              );
-            })}
+            {order.products.map((product) => (
+              <li key={product.productId}>
+                {product.productName} (x{product.quantity}) - ₹{product.price}
+              </li>
+            ))}
           </ul>
         </p>
       </div>

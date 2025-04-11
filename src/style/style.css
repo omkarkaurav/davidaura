@@ -99,6 +99,18 @@ section {
   z-index: 2;
 }
 
+.register-modal{
+  padding: 15px 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background-color: rgb(250, 250, 250);
+ box-shadow: rgba(0, 0, 0, 0.245) 0px 5px 48px;
+
+}
+
 /* Style for the inner span (arrow icon) */
 .shop-btn button span {
   display: flex;
