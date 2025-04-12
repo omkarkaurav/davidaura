@@ -257,7 +257,7 @@ function PaymentDetails({
   // Automatically verify payment for Cash on Delivery
   useEffect(() => {
     if (paymentMethod === "Cash on Delivery") {
-      onPaymentVerified(true);
+      onPaymentVerified(false);
     }
   }, [paymentMethod, onPaymentVerified]);
 
@@ -454,7 +454,7 @@ export default function Checkout() {
   const discountCalculated = originalTotal - productTotal;
   const totalPrice = Math.floor(productTotal + deliveryCharge);
   // Payment-related state
-  const [paymentMethod, setPaymentMethod] = useState("UPI");
+  const [paymentMethod, setPaymentMethod] = useState("Razorpay");
   const [upiId, setUpiId] = useState("");
   const [verifiedUpi] = useState(false);
   const [selectedUpiApp, setSelectedUpiApp] = useState("PhonePe");
@@ -631,7 +631,12 @@ export default function Checkout() {
           createdAt: now.toString(),
           paymentMode: paymentMethod,
           transactionId: transactionId,
-          paymentStatus: paymentVerified && "paid",
+          paymentStatus:
+            paymentMethod === "Cash on Delivery"
+              ? "pending"
+              : paymentVerified
+              ? "paid"
+              : "failed",
         })
         .returning({
           id: ordersTable.id,
@@ -815,7 +820,9 @@ export default function Checkout() {
               <button
                 onClick={handlePlaceOrder}
                 className="btn btn-primary"
-                disabled={!paymentVerified}
+                disabled={
+                  paymentMethod !== "Cash on Delivery" && !paymentVerified
+                }
               >
                 {loading ? "Placing order..." : "Place Order"}
               </button>
