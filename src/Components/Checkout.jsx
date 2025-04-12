@@ -161,8 +161,8 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
     (acc, item) =>
       acc +
       Math.floor(
-        item.product.oprice -
-          (item?.product.oprice * item?.product.discount) / 100
+        item?.product.oprice -
+          (item?.product?.oprice * item?.product.discount) / 100
       ) *
         (item?.quantity || 1),
     0
@@ -310,7 +310,7 @@ function PaymentDetails({
           <span>Payment Section</span>
           <span>
             <span className="payment-total-price">
-              <strong>Total Price:</strong> ₹{Math.floor(totalPrice)}
+              <strong>Total Price:</strong> ₹{totalPrice}
             </span>
             <span className="toggle-icon">{summaryExpanded ? "▲" : "▼"}</span>
           </span>
@@ -319,10 +319,10 @@ function PaymentDetails({
           <div className="summary-details">
             <p>Please review your price details below:</p>
             <p>
-              <strong>Products Total:</strong> ₹{Math.floor(productTotal)}
+              <strong>Products Total:</strong> ₹{productTotal}
             </p>
             <p>
-              <strong>Discount:</strong> ₹{Math.floor(discountCalculated)}
+              <strong>Discount:</strong> ₹{discountCalculated}
             </p>
             <p>
               <strong>Delivery Charge:</strong> ₹{deliveryCharge}
@@ -440,15 +440,18 @@ export default function Checkout() {
   }, []);
   const deliveryCharge = 50;
   const originalTotal = selectedItems.reduce(
-    (acc, item) => acc + item?.product?.oprice * item?.product?.quantity,
+    (acc, item) =>
+      acc + Math.floor(item?.product?.oprice) * item?.quantity || 1,
     0
   );
   const productTotal = selectedItems.reduce(
     (acc, item) =>
       acc +
-      (item?.product?.oprice -
-        (item?.product?.discount / 100) * item?.product?.oprice) *
-        item.quantity,
+      Math.floor(
+        item?.product?.oprice -
+          (item?.product?.discount / 100) * item?.product?.oprice
+      ) *
+        item?.quantity,
     0
   );
   const discountCalculated = originalTotal - productTotal;
