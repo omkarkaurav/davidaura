@@ -2,7 +2,7 @@
 .footer {
     width: 100%;
     background: #ffffff;
-    padding: 20px 0;
+    padding: 0 0 10px 0;
     box-shadow: rgba(136, 165, 191, 0.48) 6px 2px 16px 0px, rgba(255, 255, 255, 0.8) -6px -2px 16px 0px;
     border-top-left-radius: 32px;
     border-top-right-radius: 32px;

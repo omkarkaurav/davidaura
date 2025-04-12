@@ -127,17 +127,11 @@ function AddressSelection({
         ))}
         <div className="address-form-actions">
           {editingIndex !== null ? (
-            <button
-              onClick={handleSaveAddress}
-              className="btn btn-outline-primary"
-            >
+            <button onClick={handleSaveAddress} className="btn btn-outline-primary">
               Update Address
             </button>
           ) : (
-            <button
-              onClick={handleSaveAddress}
-              className="btn btn-outline-primary"
-            >
+            <button onClick={handleSaveAddress} className="btn btn-outline-primary">
               Save Address
             </button>
           )}
@@ -237,8 +231,9 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
 // -------------------------------------------------------------------
 // Component: PaymentDetails
 // Handles payment method selection and displays relevant input fields.
-// Includes Razorpay integration.
+// Includes Razorpay integration with proper order creation and payment verification.
 // -------------------------------------------------------------------
+// In your PaymentDetails component
 function PaymentDetails({
   paymentMethod,
   setPaymentMethod,
@@ -266,39 +261,116 @@ function PaymentDetails({
     selectedAddress.city &&
     selectedAddress.city.toLowerCase() === "gwalior";
 
-  // Available payment methods include UPI, Razorpay, and conditionally COD.
+  // Available payment methods include Razorpay and conditionally Cash on Delivery.
   const availablePaymentMethods = ["Razorpay"].concat(
     isCODAllowed ? ["Cash on Delivery"] : []
   );
 
-  // Razorpay payment handler
-  const handleRazorpayPayment = () => {
-    const options = {
-      key: "rzp_test_ewlL5XgMo10QR4",
-      amount: totalPrice * 100,
-      currency: "INR",
-      name: "DevidAura",
-      description: "Order Payment",
-      prefill: {
-        name: userdetails?.name || "",
-        email: userdetails?.email || "",
-        contact: selectedAddress?.phone || "",
-      },
-      handler: function (response) {
-        console.log("Payment successful:", response);
-        setTransactionId(response.razorpay_payment_id);
-        onPaymentVerified(true); // <- this sets paymentVerified = true
-        toast.success("Payment successful!");
-      },
-      modal: {
-        ondismiss: function () {
-          toast.error("Payment cancelled");
+  // Razorpay payment handler with added logging and explicit key extraction
+  const handleRazorpayPayment = async () => {
+    try {
+      // const baseURL = import.meta.env.VITE_API_BASE_URL;
+  
+      // Step 1: Create an order on the backend
+      const orderResponse = await fetch("http://localhost:3000/api/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      },
-    };
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+        body: JSON.stringify({
+          amount: totalPrice, // in rupees
+          currency: "INR",
+        }),
+      });
+  
+      if (!orderResponse.ok) {
+        const errorText = await orderResponse.text();
+        console.error("Order creation failed:", errorText);
+        toast.error("Could not create order. Try again.");
+        return;
+      }
+  
+      const responseText = await orderResponse.text();
+      if (!responseText) {
+        toast.error("Empty order response");
+        return;
+      }
+  
+      let orderData;
+      try {
+        orderData = JSON.parse(responseText);
+      } catch (err) {
+        console.error("Error parsing order JSON:", err);
+        toast.error("Invalid server response.");
+        return;
+      }
+  
+      if (!orderData.id) {
+        toast.error("Order not created. Missing order ID.");
+        return;
+      }
+  
+      // Step 2: Configure Razorpay options
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY,
+        amount: totalPrice * 100,
+        currency: "INR",
+        name: "DevidAura",
+        description: "Order Payment",
+        order_id: orderData.id,
+        prefill: {
+          name: userdetails?.name || "",
+          email: userdetails?.email || "",
+          contact: selectedAddress?.phone || "",
+        },
+        handler: async function (response) {
+          console.log("Razorpay response:", response);
+          const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
+  
+          // ✅ FIXED: Correct verification endpoint
+          const verifyRes = await fetch("http://localhost:3000/api/verify-payment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              razorpay_order_id,
+              razorpay_payment_id,
+              razorpay_signature,
+            }),
+          });
+  
+          if (!verifyRes.ok) {
+            toast.error("Verification failed. Try again.");
+            return;
+          }
+  
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) {
+            setTransactionId(razorpay_payment_id);
+            onPaymentVerified(true);
+            toast.success("Payment successful!");
+          } else {
+            toast.error("Invalid payment. Please contact support.");
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            toast.error("Payment cancelled.");
+          },
+        },
+      };
+  
+      // Step 3: Open Razorpay Checkout
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      console.error("Payment error:", err);
+      toast.error("Payment failed. Please try again.");
+    }
   };
+  
+  
 
   return (
     <div className="payment-details">
@@ -375,6 +447,7 @@ function PaymentDetails({
   );
 }
 
+
 // -------------------------------------------------------------------
 // Component: Confirmation
 // Displays order confirmation and navigation options after order placement.
@@ -441,15 +514,14 @@ export default function Checkout() {
   const deliveryCharge = 50;
   const originalTotal = selectedItems.reduce(
     (acc, item) =>
-      acc + Math.floor(item?.product?.oprice) * item?.quantity || 1,
+      acc + Math.floor(item?.product?.oprice) * (item?.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
     (acc, item) =>
       acc +
       Math.floor(
-        item?.product?.oprice -
-          (item?.product?.discount / 100) * item?.product?.oprice
+        item?.product?.oprice - (item?.product?.discount / 100) * item?.product?.oprice
       ) *
         item?.quantity,
     0
@@ -537,9 +609,7 @@ export default function Checkout() {
     );
 
     if (isEmptyField) {
-      alert(
-        "Please fill in all the required fields before saving the address."
-      );
+      alert("Please fill in all the required fields before saving the address.");
       return;
     }
 
@@ -663,13 +733,11 @@ export default function Checkout() {
         productId: item.product.id,
         quantity: item.product.quantity,
         price: Math.floor(
-          item.product.oprice -
-            (item.product.discount / 100) * item.product.oprice
+          item.product.oprice - (item.product.discount / 100) * item.product.oprice
         ),
         totalPrice:
           Math.floor(
-            item.product.oprice -
-              (item.product.discount / 100) * item.product.oprice
+            item.product.oprice - (item.product.discount / 100) * item.product.oprice
           ) * item.product?.quantity,
       }));
 
@@ -840,3 +908,6 @@ export default function Checkout() {
     </div>
   );
 }
+
+
+

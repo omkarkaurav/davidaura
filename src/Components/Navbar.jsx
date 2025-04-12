@@ -100,6 +100,21 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [profileContainerRef]);
 
+  // Close profile dropdown when navigating to another route
+  useEffect(() => {
+    const handleRouteChange = () => {
+      setIsProfileOpen(false);
+    };
+
+    // Listen for route changes and close the profile dropdown
+    navigate(handleRouteChange);
+  }, [navigate]);
+
+  // Close profile dropdown when clicking any <li> inside the dropdown
+  const closeProfileDropdownOnClick = () => {
+    setIsProfileOpen(false);
+  };
+
   // Close profile dropdown on scrolling
   useEffect(() => {
     const handleScrollProfile = () => {
@@ -213,9 +228,7 @@ const Navbar = () => {
             {isLoggedIn && user && (
               <div className="profile-container" ref={profileContainerRef}>
                 <div
-                  className={`profile-content ${
-                    isProfileOpen ? "active" : "hidden"
-                  }`}
+                  className={`profile-content ${isProfileOpen ? "active" : "hidden"}`}
                   id="profileContent"
                 >
                   <div className="desktop-profile-info">
@@ -229,23 +242,22 @@ const Navbar = () => {
                       <h3 id="profile-name">{user.fullName}</h3>
                       <p id="profile-email">
                         {user.primaryPhoneNumber?.phoneNumber ||
-                          (user.phoneNumbers &&
-                            user.phoneNumbers[0]?.phoneNumber) ||
+                          (user.phoneNumbers && user.phoneNumbers[0]?.phoneNumber) ||
                           "N/A"}
                       </p>
                     </div>
                   </div>
                   <ul>
-                    <li onClick={() => navigate("/myorder")}>
+                    <li onClick={() => { navigate("/myorder"); closeProfileDropdownOnClick(); }}>
                       <img src={MyOrderIcon} alt="" />
                       <a>My Orders</a>
                     </li>
-                    <li onClick={() => navigate("/contact")}>
+                    <li onClick={() => { navigate("/contact"); closeProfileDropdownOnClick(); }}>
                       <img src={MailUsIcon} alt="" />
                       <a>Contact Us</a>
                     </li>
-                    {isLoggedIn && user && userdetails?.role == "admin" && (
-                      <li onClick={() => navigate("/admin")}>
+                    {isLoggedIn && user && userdetails?.role === "admin" && (
+                      <li onClick={() => { navigate("/admin"); closeProfileDropdownOnClick(); }}>
                         <img src={AdminIcon} alt="" />
                         <a>Admin Panel</a>
                       </li>
@@ -256,6 +268,7 @@ const Navbar = () => {
                       onClick={async (e) => {
                         e.preventDefault();
                         await signOut({ redirectUrl: "/" });
+                        closeProfileDropdownOnClick();
                       }}
                     >
                       <a id="logout-btn-2">Log Out</a>
@@ -318,48 +331,42 @@ const Navbar = () => {
                         </div>
                       )}
                       <ul>
-                        <li onClick={() => navigate("/myorder")}>
+                        <li onClick={() => { navigate("/myorder"); closeProfileDropdownOnClick(); }}>
                           <img src={MyOrderIcon} alt="" />
                           <a>My Orders</a>
                         </li>
-                        <li onClick={() => navigate("/wishlist")}>
+                        <li onClick={() => { navigate("/wishlist"); closeProfileDropdownOnClick(); }}>
                           <img src={WishlistIcon} alt="" />
                           <a>Wishlist</a>
                         </li>
-                        <li onClick={() => navigate("/cart")}>
+                        <li onClick={() => { navigate("/cart"); closeProfileDropdownOnClick(); }}>
                           <img src={CartIcon} alt="" />
                           <a>Cart</a>
                         </li>
-                        {isLoggedIn && userdetails?.role == "admin" && (
-                          <li onClick={() => navigate("/admin")}>
+                        {isLoggedIn && userdetails?.role === "admin" && (
+                          <li onClick={() => { navigate("/admin"); closeProfileDropdownOnClick(); }}>
                             <img src={AdminIcon} alt="" />
                             <a>Admin Panel</a>
                           </li>
                         )}
-                        <li onClick={() => navigate("/contact")}>
-                          <img src={MailUsIcon} alt="" />
-                          <a>Contact Us</a>
+                        <li
+                          className="logout"
+                          id="logout-2"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            await signOut({ redirectUrl: "/" });
+                            closeProfileDropdownOnClick();
+                          }}
+                        >
+                          <a id="logout-btn-2">Log Out</a>
+                          <img src={LogOutIcon} alt="" />
                         </li>
-                        {isLoggedIn && (
-                          <li
-                            className="logout"
-                            id="logout-2"
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              await signOut({ redirectUrl: "/" });
-                            }}
-                          >
-                            <a id="logout-btn-2">Log Out</a>
-                            <img src={LogOutIcon} alt="" />
-                          </li>
-                        )}
                       </ul>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            {/* End Mobile Sidebar */}
           </div>
         </div>
       </nav>
