@@ -528,7 +528,7 @@ export default function Checkout() {
       setSelectedItems(JSON.parse(items));
     }
   }, []);
-  const deliveryCharge = 50;
+  const deliveryCharge = 49;
   const originalTotal = selectedItems.reduce(
     (acc, item) =>
       acc + Math.floor(item?.product?.oprice) * (item?.quantity || 1),
