@@ -24,6 +24,7 @@ import "../style/navbar.css";
 import { useUser, useClerk } from "@clerk/clerk-react";
 // Import Cart Context
 import { CartContext } from "../contexts/CartContext";
+import { UserContext } from "../contexts/UserContext";
 
 const Navbar = () => {
   const { wishlist, cart } = useContext(CartContext);
@@ -43,6 +44,7 @@ const Navbar = () => {
 
   // Create a ref for the profile container
   const profileContainerRef = useRef(null);
+  const { userdetails } = useContext(UserContext);
 
   // Update cart count when cart changes
   useEffect(() => {
@@ -242,7 +244,7 @@ const Navbar = () => {
                       <img src={MailUsIcon} alt="" />
                       <a>Contact Us</a>
                     </li>
-                    {isLoggedIn && user && user.isAdmin && (
+                    {isLoggedIn && user && userdetails?.role == "admin" && (
                       <li onClick={() => navigate("/admin")}>
                         <img src={AdminIcon} alt="" />
                         <a>Admin Panel</a>
@@ -289,7 +291,12 @@ const Navbar = () => {
                         className="mob-profile-img"
                         id="mob-profile-img"
                       />
-                      <div className="user-data" style={{ visibility: isLoggedIn ? "visible" : "hidden" }}>
+                      <div
+                        className="user-data"
+                        style={{
+                          visibility: isLoggedIn ? "visible" : "hidden",
+                        }}
+                      >
                         <h3 id="mob-profile-name">{user?.fullName}</h3>
                         <p id="mob-profile-email">
                           {user?.primaryPhoneNumber?.phoneNumber ||
@@ -323,7 +330,7 @@ const Navbar = () => {
                           <img src={CartIcon} alt="" />
                           <a>Cart</a>
                         </li>
-                        {isLoggedIn && user && user.isAdmin && (
+                        {isLoggedIn && userdetails?.role == "admin" && (
                           <li onClick={() => navigate("/admin")}>
                             <img src={AdminIcon} alt="" />
                             <a>Admin Panel</a>

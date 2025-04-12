@@ -23,6 +23,7 @@ import { toast, ToastContainer } from "react-toastify";
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState("products");
   const [openModal, setOpenModal] = useState(false);
+  const [detailsmodal, setDetailsmodal] = useState(false);
   const [loading, setLoading] = useState(false);
   const { products, setProducts } = useContext(ProductContext);
   const [coupons, setCoupons] = useState([]);
@@ -229,6 +230,7 @@ const AdminPanel = () => {
 
       <div className="admin-content">
         {openModal && <ImageUploadModal isopen={openModal} />}
+
         {/* Products Tab */}
         {activeTab === "products" && (
           <div className="products-tab">
@@ -745,6 +747,12 @@ const AdminPanel = () => {
                   >
                     See More Details
                   </button>
+                  {selectedOrder && (
+                    <OrderDetailsPopup
+                      order={selectedOrder}
+                      onClose={() => setSelectedOrder(null)}
+                    />
+                  )}
                 </div>
               ))
             ) : (
@@ -909,13 +917,12 @@ const OrderDetailsPopup = ({ order, onClose }) => {
         </p>
         <p>
           <strong>Products:</strong>
-          <ul>
-            {order.products.map((product) => (
-              <li key={product.productId}>
-                {product.productName} (x{product.quantity}) - ₹{product.price}
-              </li>
-            ))}
-          </ul>
+
+          {order.products.map((product) => (
+            <li key={product.productId}>
+              {product.productName} (x{product.quantity}) - ₹{product.price}
+            </li>
+          ))}
         </p>
       </div>
     </div>

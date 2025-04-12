@@ -299,7 +299,6 @@ function PaymentDetails({
     const rzp = new window.Razorpay(options);
     rzp.open();
   };
-  
 
   return (
     <div className="payment-details">
@@ -311,7 +310,7 @@ function PaymentDetails({
           <span>Payment Section</span>
           <span>
             <span className="payment-total-price">
-              <strong>Total Price:</strong> ₹{totalPrice}
+              <strong>Total Price:</strong> ₹{Math.floor(totalPrice)}
             </span>
             <span className="toggle-icon">{summaryExpanded ? "▲" : "▼"}</span>
           </span>
@@ -320,10 +319,10 @@ function PaymentDetails({
           <div className="summary-details">
             <p>Please review your price details below:</p>
             <p>
-              <strong>Products Total:</strong> ₹{productTotal}
+              <strong>Products Total:</strong> ₹{Math.floor(productTotal)}
             </p>
             <p>
-              <strong>Discount:</strong> ₹{discountCalculated}
+              <strong>Discount:</strong> ₹{Math.floor(discountCalculated)}
             </p>
             <p>
               <strong>Delivery Charge:</strong> ₹{deliveryCharge}
@@ -632,6 +631,7 @@ export default function Checkout() {
           createdAt: now.toString(),
           paymentMode: paymentMethod,
           transactionId: transactionId,
+          paymentStatus: paymentVerified && "paid",
         })
         .returning({
           id: ordersTable.id,
