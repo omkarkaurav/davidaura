@@ -180,6 +180,18 @@ section {
   z-index: 99;
 }
 
+
+.razorpay-payment-content{
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 10px;
+}
+
+.razorpay-pay-btn{
+  align-self: flex-end;
+  border-radius: 22px;
+}
 @media (max-width: 480px) {
   /* Hero Section Media Query (Just Adjusted Height) */
   section {

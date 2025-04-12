@@ -93,9 +93,12 @@ h2 {
 /* Address Section */
 .address-selection h2,
 .order-summary h2,
-.payment-details h2,
 .confirmation h2 {
   margin-bottom: 15px;
+}
+
+.payment-details h2{
+  margin-bottom: 30px;
 }
 
 .address-list {
@@ -222,6 +225,7 @@ h2 {
 .checkout-footer {
   display: flex;
   justify-content: space-between;
+  padding: 0 20px;
 }
 
 .btn {
@@ -335,7 +339,7 @@ h2 {
 /* Payment Summary Container */
 .payment-summary {
   background-color: #f8f9fa;
-  padding: 10px 15px;
+  padding: 10px 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   margin-bottom: 20px;
@@ -606,9 +610,13 @@ h2 {
   /* Address Section */
   .address-selection h2,
   .order-summary h2,
-  .payment-details h2,
   .confirmation h2 {
     margin-bottom: 15px;
+  }
+
+  .payment-details h2{
+    margin-top: 20px;
+    margin-bottom: 60px;
   }
 
   .address-list {

@@ -23,7 +23,9 @@ import { eq } from "drizzle-orm";
 // -------------------------------------------------------------------
 const formatAddress = (address) => {
   if (!address) return "";
-  return `${address.name} - ${address.address}, ${address.city}, ${address.state}, ${address.country} (${address.postalCode})${
+  return `${address.name} - ${address.address}, ${address.city}, ${
+    address.state
+  }, ${address.country} (${address.postalCode})${
     address.phone ? " - Phone: " + address.phone : ""
   }`;
 };
@@ -54,7 +56,9 @@ function AddressSelection({
         {addresses?.map((addr, index) => (
           <div
             key={index}
-            className={`address-item ${selectedAddressIndex === index ? "active" : ""}`}
+            className={`address-item ${
+              selectedAddressIndex === index ? "active" : ""
+            }`}
           >
             <span
               onClick={() => {
@@ -76,10 +80,16 @@ function AddressSelection({
             </span>
 
             <div className="address-actions">
-              <button onClick={() => handleEditAddress(index)} className="btn btn-link edit-button">
+              <button
+                onClick={() => handleEditAddress(index)}
+                className="btn btn-link edit-button"
+              >
                 Edit
               </button>
-              <button onClick={() => handleDeleteAddress(index)} className="btn btn-link delete-button">
+              <button
+                onClick={() => handleDeleteAddress(index)}
+                className="btn btn-link delete-button"
+              >
                 Delete
               </button>
             </div>
@@ -99,7 +109,9 @@ function AddressSelection({
               setSelectedAddress(null);
               setSelectedAddressIndex(null);
             }}
-            onChange={(e) => setNewAddress({ ...newAddress, [field]: e.target.value })}
+            onChange={(e) =>
+              setNewAddress({ ...newAddress, [field]: e.target.value })
+            }
             {...(field === "postalCode"
               ? {
                   onKeyDown: (e) => {
@@ -115,11 +127,17 @@ function AddressSelection({
         ))}
         <div className="address-form-actions">
           {editingIndex !== null ? (
-            <button onClick={handleSaveAddress} className="btn btn-outline-primary">
+            <button
+              onClick={handleSaveAddress}
+              className="btn btn-outline-primary"
+            >
               Update Address
             </button>
           ) : (
-            <button onClick={handleSaveAddress} className="btn btn-outline-primary">
+            <button
+              onClick={handleSaveAddress}
+              className="btn btn-outline-primary"
+            >
               Save Address
             </button>
           )}
@@ -135,7 +153,8 @@ function AddressSelection({
 // -------------------------------------------------------------------
 function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
   const originalTotal = selectedItems.reduce(
-    (acc, item) => acc + Math.floor(item.product.oprice) * (item?.quantity || 1),
+    (acc, item) =>
+      acc + Math.floor(item.product.oprice) * (item?.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
@@ -190,7 +209,9 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
       <div className="price-breakdown">
         <p>
           <span>
-            Products ({selectedItems.reduce((acc, item) => acc + (item.quantity || 1), 0)} items):
+            Products (
+            {selectedItems.reduce((acc, item) => acc + (item.quantity || 1), 0)}{" "}
+            items):
           </span>
           <span>₹{productTotal}</span>
         </p>
@@ -255,16 +276,19 @@ function PaymentDetails({
   const handleRazorpayPayment = async () => {
     try {
       // Step 1: Create an order on the backend
-      const orderResponse = await fetch("http://localhost:3000/api/create-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: totalPrice, // in rupees
-          currency: "INR",
-        }),
-      });
+      const orderResponse = await fetch(
+        "http://localhost:3000/api/create-order",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: totalPrice, // in rupees
+            currency: "INR",
+          }),
+        }
+      );
 
       if (!orderResponse.ok) {
         const errorText = await orderResponse.text();
@@ -308,20 +332,24 @@ function PaymentDetails({
         },
         handler: async function (response) {
           console.log("Razorpay response:", response);
-          const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
+          const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+            response;
 
           // Step 3: Verify payment with backend
-          const verifyRes = await fetch("http://localhost:3000/api/verify-payment", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              razorpay_order_id,
-              razorpay_payment_id,
-              razorpay_signature,
-            }),
-          });
+          const verifyRes = await fetch(
+            "http://localhost:3000/api/verify-payment",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                razorpay_order_id,
+                razorpay_payment_id,
+                razorpay_signature,
+              }),
+            }
+          );
 
           if (!verifyRes.ok) {
             toast.error("Verification failed. Try again.");
@@ -341,6 +369,7 @@ function PaymentDetails({
               amount: totalPrice,
               status: "Order Placed",
               progressStep: 1,
+              verified: true,
               items: selectedItems,
             };
             // Call callback from Checkout to create the order immediately.
@@ -372,13 +401,10 @@ function PaymentDetails({
           className="summary-header"
           onClick={() => setSummaryExpanded(!summaryExpanded)}
         >
-          <span>Payment Section</span>
-          <span>
-            <span className="payment-total-price">
-              <strong>Total Price:</strong> ₹{totalPrice}
-            </span>
-            <span className="toggle-icon">{summaryExpanded ? "▲" : "▼"}</span>
+          <span className="payment-total-price">
+            Total Price: ₹{totalPrice}
           </span>
+          <span className="toggle-icon">{summaryExpanded ? "▲" : "▼"}</span>
         </div>
         {summaryExpanded && (
           <div className="summary-details">
@@ -416,12 +442,10 @@ function PaymentDetails({
       <div className="payment-method-content">
         {paymentMethod === "Razorpay" && (
           <div className="razorpay-payment-content">
-            <h3>UPI</h3>
-            <p>Total Amount: ₹{totalPrice}</p>
             {/* If payment is not yet verified, show "Pay Now" */}
             <button
               onClick={handleRazorpayPayment}
-              className="btn btn-outline-primary"
+              className="razorpay-pay-btn btn btn-outline-primary"
               disabled={false}
             >
               Pay Now
@@ -514,7 +538,8 @@ export default function Checkout() {
     (acc, item) =>
       acc +
       Math.floor(
-        item?.product?.oprice - (item?.product?.discount / 100) * item?.product?.oprice
+        item?.product?.oprice -
+          (item?.product?.discount / 100) * item?.product?.oprice
       ) *
         item?.quantity,
     0
@@ -566,7 +591,9 @@ export default function Checkout() {
   // -------------------------------------------------------------------
   const saveAddressInDb = async (address) => {
     try {
-      await db.insert(UserAddressTable).values({ ...address, userId: userdetails.id });
+      await db
+        .insert(UserAddressTable)
+        .values({ ...address, userId: userdetails.id });
     } catch (error) {
       console.log(error);
     }
@@ -574,7 +601,9 @@ export default function Checkout() {
 
   const updatedAddressesInDb = async (address) => {
     try {
-      await db.update(UserAddressTable).set({ ...address, userId: userdetails.id });
+      await db
+        .update(UserAddressTable)
+        .set({ ...address, userId: userdetails.id });
     } catch (error) {
       console.log(error);
     }
@@ -598,7 +627,9 @@ export default function Checkout() {
     );
 
     if (isEmptyField) {
-      alert("Please fill in all the required fields before saving the address.");
+      alert(
+        "Please fill in all the required fields before saving the address."
+      );
       return;
     }
 
@@ -661,7 +692,10 @@ export default function Checkout() {
       const updatedAddresses = addresses.filter((_, i) => i !== index);
       setAddresses(updatedAddresses);
 
-      if (selectedAddress && addressToDelete.postalCode === selectedAddress.postalCode) {
+      if (
+        selectedAddress &&
+        addressToDelete.postalCode === selectedAddress.postalCode
+      ) {
         setSelectedAddress(null);
       }
       toast.success("Address deleted successfully.");
@@ -694,7 +728,7 @@ export default function Checkout() {
           paymentStatus:
             paymentMethod === "Cash on Delivery"
               ? "pending"
-              : paymentVerified
+              : newOrder.verified
               ? "paid"
               : "failed",
         })
@@ -720,16 +754,20 @@ export default function Checkout() {
         productId: item.product.id,
         quantity: item.product.quantity,
         price: Math.floor(
-          item.product.oprice - (item.product.discount / 100) * item.product.oprice
+          item.product.oprice -
+            (item.product.discount / 100) * item.product.oprice
         ),
         totalPrice:
           Math.floor(
-            item.product.oprice - (item.product.discount / 100) * item.product.oprice
+            item.product.oprice -
+              (item.product.discount / 100) * item.product.oprice
           ) * item.product?.quantity,
       }));
 
       await db.insert(orderItemsTable).values(orderItemsData);
-      await db.delete(addToCartTable).where(eq(addToCartTable.userId, userdetails.id));
+      await db
+        .delete(addToCartTable)
+        .where(eq(addToCartTable.userId, userdetails.id));
       toast.success("Order Placed");
       setCart([]);
       setLoading(false);
@@ -819,7 +857,10 @@ export default function Checkout() {
         <div className="progress-indicator">
           {["Address", "Order Summary", "Payment", "Confirmation"].map(
             (label, idx) => (
-              <div key={idx} className={`progress-step ${step >= idx + 1 ? "active" : ""}`}>
+              <div
+                key={idx}
+                className={`progress-step ${step >= idx + 1 ? "active" : ""}`}
+              >
                 <span>{idx + 1}</span>
                 <p>{label}</p>
               </div>
