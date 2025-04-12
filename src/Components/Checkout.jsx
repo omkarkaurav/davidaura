@@ -23,9 +23,7 @@ import { eq } from "drizzle-orm";
 // -------------------------------------------------------------------
 const formatAddress = (address) => {
   if (!address) return "";
-  return `${address.name} - ${address.address}, ${address.city}, ${
-    address.state
-  }, ${address.country} (${address.postalCode})${
+  return `${address.name} - ${address.address}, ${address.city}, ${address.state}, ${address.country} (${address.postalCode})${
     address.phone ? " - Phone: " + address.phone : ""
   }`;
 };
@@ -56,9 +54,7 @@ function AddressSelection({
         {addresses?.map((addr, index) => (
           <div
             key={index}
-            className={`address-item ${
-              selectedAddressIndex === index ? "active" : ""
-            }`}
+            className={`address-item ${selectedAddressIndex === index ? "active" : ""}`}
           >
             <span
               onClick={() => {
@@ -80,16 +76,10 @@ function AddressSelection({
             </span>
 
             <div className="address-actions">
-              <button
-                onClick={() => handleEditAddress(index)}
-                className="btn btn-link edit-button"
-              >
+              <button onClick={() => handleEditAddress(index)} className="btn btn-link edit-button">
                 Edit
               </button>
-              <button
-                onClick={() => handleDeleteAddress(index)}
-                className="btn btn-link delete-button"
-              >
+              <button onClick={() => handleDeleteAddress(index)} className="btn btn-link delete-button">
                 Delete
               </button>
             </div>
@@ -109,9 +99,7 @@ function AddressSelection({
               setSelectedAddress(null);
               setSelectedAddressIndex(null);
             }}
-            onChange={(e) =>
-              setNewAddress({ ...newAddress, [field]: e.target.value })
-            }
+            onChange={(e) => setNewAddress({ ...newAddress, [field]: e.target.value })}
             {...(field === "postalCode"
               ? {
                   onKeyDown: (e) => {
@@ -147,8 +135,7 @@ function AddressSelection({
 // -------------------------------------------------------------------
 function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
   const originalTotal = selectedItems.reduce(
-    (acc, item) =>
-      acc + Math.floor(item.product.oprice) * (item?.quantity || 1),
+    (acc, item) => acc + Math.floor(item.product.oprice) * (item?.quantity || 1),
     0
   );
   const productTotal = selectedItems.reduce(
@@ -203,9 +190,7 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
       <div className="price-breakdown">
         <p>
           <span>
-            Products (
-            {selectedItems.reduce((acc, item) => acc + (item.quantity || 1), 0)}{" "}
-            items):
+            Products ({selectedItems.reduce((acc, item) => acc + (item.quantity || 1), 0)} items):
           </span>
           <span>₹{productTotal}</span>
         </p>
@@ -231,22 +216,22 @@ function OrderSummary({ selectedAddress, selectedItems, deliveryCharge }) {
 // -------------------------------------------------------------------
 // Component: PaymentDetails
 // Handles payment method selection and displays relevant input fields.
-// Includes Razorpay integration with proper order creation and payment verification.
+// Includes Razorpay integration with automatic order placement after payment verification.
 // -------------------------------------------------------------------
-// In your PaymentDetails component
 function PaymentDetails({
   paymentMethod,
   setPaymentMethod,
   onPaymentVerified,
   productTotal,
-  paymentVerified,
   discountCalculated,
   deliveryCharge,
   totalPrice,
   setTransactionId,
   selectedAddress,
+  userdetails,
+  selectedItems,
+  onRazorpaySuccess, // new prop to trigger order placement automatically
 }) {
-  const { userdetails } = useContext(UserContext);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
 
   // Automatically verify payment for Cash on Delivery
@@ -261,16 +246,14 @@ function PaymentDetails({
     selectedAddress.city &&
     selectedAddress.city.toLowerCase() === "gwalior";
 
-  // Available payment methods include Razorpay and conditionally Cash on Delivery.
+  // Payment methods available: Razorpay always; Cash on Delivery conditionally.
   const availablePaymentMethods = ["Razorpay"].concat(
     isCODAllowed ? ["Cash on Delivery"] : []
   );
 
-  // Razorpay payment handler with added logging and explicit key extraction
+  // Razorpay payment handler with auto-order placement on verification
   const handleRazorpayPayment = async () => {
     try {
-      // const baseURL = import.meta.env.VITE_API_BASE_URL;
-  
       // Step 1: Create an order on the backend
       const orderResponse = await fetch("http://localhost:3000/api/create-order", {
         method: "POST",
@@ -282,20 +265,20 @@ function PaymentDetails({
           currency: "INR",
         }),
       });
-  
+
       if (!orderResponse.ok) {
         const errorText = await orderResponse.text();
         console.error("Order creation failed:", errorText);
         toast.error("Could not create order. Try again.");
         return;
       }
-  
+
       const responseText = await orderResponse.text();
       if (!responseText) {
         toast.error("Empty order response");
         return;
       }
-  
+
       let orderData;
       try {
         orderData = JSON.parse(responseText);
@@ -304,12 +287,12 @@ function PaymentDetails({
         toast.error("Invalid server response.");
         return;
       }
-  
+
       if (!orderData.id) {
         toast.error("Order not created. Missing order ID.");
         return;
       }
-  
+
       // Step 2: Configure Razorpay options
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY,
@@ -326,8 +309,8 @@ function PaymentDetails({
         handler: async function (response) {
           console.log("Razorpay response:", response);
           const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
-  
-          // ✅ FIXED: Correct verification endpoint
+
+          // Step 3: Verify payment with backend
           const verifyRes = await fetch("http://localhost:3000/api/verify-payment", {
             method: "POST",
             headers: {
@@ -339,17 +322,29 @@ function PaymentDetails({
               razorpay_signature,
             }),
           });
-  
+
           if (!verifyRes.ok) {
             toast.error("Verification failed. Try again.");
             return;
           }
-  
+
           const verifyData = await verifyRes.json();
           if (verifyData.success) {
             setTransactionId(razorpay_payment_id);
             onPaymentVerified(true);
             toast.success("Payment successful!");
+
+            // Construct order details and trigger automatic order placement.
+            const newOrder = {
+              id: Date.now(),
+              date: new Date().toISOString().split("T")[0],
+              amount: totalPrice,
+              status: "Order Placed",
+              progressStep: 1,
+              items: selectedItems,
+            };
+            // Call callback from Checkout to create the order immediately.
+            onRazorpaySuccess(newOrder);
           } else {
             toast.error("Invalid payment. Please contact support.");
           }
@@ -360,8 +355,8 @@ function PaymentDetails({
           },
         },
       };
-  
-      // Step 3: Open Razorpay Checkout
+
+      // Open Razorpay Checkout
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (err) {
@@ -369,8 +364,6 @@ function PaymentDetails({
       toast.error("Payment failed. Please try again.");
     }
   };
-  
-  
 
   return (
     <div className="payment-details">
@@ -425,12 +418,13 @@ function PaymentDetails({
           <div className="razorpay-payment-content">
             <h3>UPI</h3>
             <p>Total Amount: ₹{totalPrice}</p>
+            {/* If payment is not yet verified, show "Pay Now" */}
             <button
               onClick={handleRazorpayPayment}
               className="btn btn-outline-primary"
-              disabled={paymentVerified}
+              disabled={false}
             >
-              {paymentVerified ? "Paid" : "Pay Now"}
+              Pay Now
             </button>
           </div>
         )}
@@ -446,7 +440,6 @@ function PaymentDetails({
     </div>
   );
 }
-
 
 // -------------------------------------------------------------------
 // Component: Confirmation
@@ -573,9 +566,7 @@ export default function Checkout() {
   // -------------------------------------------------------------------
   const saveAddressInDb = async (address) => {
     try {
-      await db
-        .insert(UserAddressTable)
-        .values({ ...address, userId: userdetails.id });
+      await db.insert(UserAddressTable).values({ ...address, userId: userdetails.id });
     } catch (error) {
       console.log(error);
     }
@@ -583,9 +574,7 @@ export default function Checkout() {
 
   const updatedAddressesInDb = async (address) => {
     try {
-      await db
-        .update(UserAddressTable)
-        .set({ ...address, userId: userdetails.id });
+      await db.update(UserAddressTable).set({ ...address, userId: userdetails.id });
     } catch (error) {
       console.log(error);
     }
@@ -672,10 +661,7 @@ export default function Checkout() {
       const updatedAddresses = addresses.filter((_, i) => i !== index);
       setAddresses(updatedAddresses);
 
-      if (
-        selectedAddress &&
-        addressToDelete.postalCode === selectedAddress.postalCode
-      ) {
+      if (selectedAddress && addressToDelete.postalCode === selectedAddress.postalCode) {
         setSelectedAddress(null);
       }
       toast.success("Address deleted successfully.");
@@ -686,7 +672,8 @@ export default function Checkout() {
   };
 
   // -------------------------------------------------------------------
-  // Handler: Create order, update DB, clear cart and navigate to confirmation
+  // Function: createorder
+  // Creates the order in the database, stores address, order items, and clears cart.
   // -------------------------------------------------------------------
   const createorder = async (newOrder, selectedAddress) => {
     if (paymentMethod === "UPI" && transactionId.length < 12) {
@@ -742,9 +729,7 @@ export default function Checkout() {
       }));
 
       await db.insert(orderItemsTable).values(orderItemsData);
-      await db
-        .delete(addToCartTable)
-        .where(eq(addToCartTable.userId, userdetails.id));
+      await db.delete(addToCartTable).where(eq(addToCartTable.userId, userdetails.id));
       toast.success("Order Placed");
       setCart([]);
       setLoading(false);
@@ -755,7 +740,18 @@ export default function Checkout() {
   };
 
   // -------------------------------------------------------------------
-  // Handler: Place Order - validate and create the order
+  // Handler: Automatic order placement after Razorpay payment success.
+  // This function is passed to PaymentDetails.
+  // -------------------------------------------------------------------
+  const handleRazorpaySuccess = (newOrder) => {
+    // Add order to context and create in DB.
+    createorder(newOrder, selectedAddress);
+    setOrders((prevOrders) => [...prevOrders, newOrder]);
+    localStorage.removeItem("selectedItems");
+  };
+
+  // -------------------------------------------------------------------
+  // Handler: Place Order for Cash on Delivery.
   // -------------------------------------------------------------------
   const handlePlaceOrder = () => {
     if (selectedItems.length === 0) {
@@ -823,10 +819,7 @@ export default function Checkout() {
         <div className="progress-indicator">
           {["Address", "Order Summary", "Payment", "Confirmation"].map(
             (label, idx) => (
-              <div
-                key={idx}
-                className={`progress-step ${step >= idx + 1 ? "active" : ""}`}
-              >
+              <div key={idx} className={`progress-step ${step >= idx + 1 ? "active" : ""}`}>
                 <span>{idx + 1}</span>
                 <p>{label}</p>
               </div>
@@ -877,6 +870,9 @@ export default function Checkout() {
             deliveryCharge={deliveryCharge}
             totalPrice={totalPrice}
             selectedAddress={selectedAddress}
+            userdetails={userdetails}
+            selectedItems={selectedItems}
+            onRazorpaySuccess={handleRazorpaySuccess}
           />
         )}
         {step === 4 && <Confirmation resetCheckout={resetCheckout} />}
@@ -888,15 +884,16 @@ export default function Checkout() {
               Back
             </button>
             {step === 3 ? (
-              <button
-                onClick={handlePlaceOrder}
-                className="btn btn-primary"
-                disabled={
-                  paymentMethod !== "Cash on Delivery" && !paymentVerified
-                }
-              >
-                {loading ? "Placing order..." : "Place Order"}
-              </button>
+              // For Cash on Delivery only, show "Place Order" button
+              paymentMethod === "Cash on Delivery" && (
+                <button
+                  onClick={handlePlaceOrder}
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? "Placing order..." : "Place Order"}
+                </button>
+              )
             ) : (
               <button onClick={handleNext} className="btn btn-primary">
                 Next
@@ -908,6 +905,3 @@ export default function Checkout() {
     </div>
   );
 }
-
-
-
