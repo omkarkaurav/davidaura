@@ -852,8 +852,12 @@ const AdminPanel = () => {
 export default AdminPanel;
 
 const OrderDetailsPopup = ({ order, onClose }) => {
-  const [paymentStatus, setPaymentStatus] = useState(order.paymentStatus);
-  const [loading, setLoading] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(
+    order.paymentMode?.trim() === "Cash on Delivery"
+      ? order.paymentStatus || "pending"
+      : order.paymentStatus
+  );
+    const [loading, setLoading] = useState(false);
 
   const handleChange = async (e) => {
     const value = e.target.value;
@@ -879,6 +883,8 @@ const OrderDetailsPopup = ({ order, onClose }) => {
         <button disabled={loading} className="close-btn-tata" onClick={onClose}>
           ×
         </button>
+        <br />
+        <br />
         <h2>Order Details (#{order.orderId})</h2>
         <p>
           <strong>User Name:</strong> {order.userName}
@@ -890,12 +896,16 @@ const OrderDetailsPopup = ({ order, onClose }) => {
           <strong>Payment Mode:</strong> {order.paymentMode}
         </p>
         <p>
-          <strong>Payment Status:</strong>
-          <select value={paymentStatus} onChange={handleChange}>
-            <option value="pending">Pending</option>
-            <option value="failed">Failed</option>
-            <option value="paid">Paid</option>
-          </select>
+          <strong>Payment Status:</strong>{" "}
+          {order.paymentMode === "Cash on Delivery" ? (
+            <select value={paymentStatus} onChange={handleChange}>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
+              <option value="paid">Paid</option>
+            </select>
+          ) : (
+            <span>{order.paymentStatus}</span>
+          )}
         </p>
         {paymentStatus === "paid" && (
           <p className="paid-status">✅ Payment Successful</p>
