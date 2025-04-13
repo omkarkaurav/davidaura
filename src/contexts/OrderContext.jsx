@@ -76,10 +76,10 @@ export const OrderProvider = ({ children }) => {
 
       const ordersWithProducts = Array.from(orderMap.values());
 
-      console.log("Orders fetched successfully:", ordersWithProducts);
+      // console.log("Orders fetched successfully:", ordersWithProducts);
       setOrders(ordersWithProducts);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      // console.error("Error fetching orders:", error);
     }
   };
 

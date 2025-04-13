@@ -35,10 +35,10 @@ export const CartProvider = ({ children }) => {
         )
         .where(eq(addToCartTable.userId, userdetails.id));
       setCart(res);
-      console.log(res);
+      // console.log(res);
       // console.log(res);
     } catch (error) {
-      console.log(error);
+      // console.log(error);
     }
   };
 
@@ -58,7 +58,7 @@ export const CartProvider = ({ children }) => {
       setWishlist(res);
       // console.log(res);
     } catch (error) {
-      console.log(error);
+      // console.log(error);
     }
   };
   useEffect(() => {

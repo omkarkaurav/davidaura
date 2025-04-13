@@ -276,19 +276,16 @@ function PaymentDetails({
   const handleRazorpayPayment = async () => {
     try {
       // Step 1: Create an order on the backend
-      const orderResponse = await fetch(
-        "http://localhost:3000/api/create-order",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            amount: totalPrice, // in rupees
-            currency: "INR",
-          }),
-        }
-      );
+      const orderResponse = await fetch("/api/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: totalPrice, // in rupees
+          currency: "INR",
+        }),
+      });
 
       if (!orderResponse.ok) {
         const errorText = await orderResponse.text();
@@ -336,20 +333,17 @@ function PaymentDetails({
             response;
 
           // Step 3: Verify payment with backend
-          const verifyRes = await fetch(
-            "http://localhost:3000/api/verify-payment",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                razorpay_order_id,
-                razorpay_payment_id,
-                razorpay_signature,
-              }),
-            }
-          );
+          const verifyRes = await fetch("/api/verify-payment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              razorpay_order_id,
+              razorpay_payment_id,
+              razorpay_signature,
+            }),
+          });
 
           if (!verifyRes.ok) {
             toast.error("Verification failed. Try again.");
@@ -603,7 +597,8 @@ export default function Checkout() {
     try {
       await db
         .update(UserAddressTable)
-        .set({ ...address, userId: userdetails.id });
+        .set({ ...address })
+        .where(eq(UserAddressTable.id, address.id));
     } catch (error) {
       console.log(error);
     }

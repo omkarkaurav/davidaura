@@ -93,7 +93,7 @@ export const UserProvider = ({ children }) => {
         });
         return acc;
       }, {});
-      console.log(Object.values(groupedOrders));
+      // console.log(Object.values(groupedOrders));
       setOrders(Object.values(groupedOrders));
 
       // console.log("Fetched Orders:", res); // Corrected console log
