@@ -3,8 +3,8 @@ import { pgTable, serial, text, integer, uuid, varchar, PgSerial, timestamp, uni
 export const usersTable = pgTable('users', {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text('name').notNull(),
-  phone: text('phone').notNull(),
-  email: text('email').default(null),
+  phone: text('phone').default("null"),
+  email: text('email').notNull(),
   role: text('role').default('user'),
   cartlength:integer("cart_length").default(0),
 

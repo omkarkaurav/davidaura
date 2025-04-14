@@ -48,14 +48,14 @@ const App = () => {
       const userdata = await db
         .select()
         .from(usersTable)
-        .where(eq(usersTable.phone, user?.primaryPhoneNumber?.phoneNumber));
+        .where(eq(usersTable.email, user?.primaryEmailAddress?.emailAddress));
       if (userdata.length === 0) {
         const res = await db
           .insert(usersTable)
           .values({
             name: user?.fullName,
-            phone: user?.primaryPhoneNumber.phoneNumber,
-            // email: user?.primaryEmailAddress?.emailAddress,
+            // phone: user?.primaryPhoneNumber.phoneNumber,
+            email: user?.primaryEmailAddress?.emailAddress,
           })
           .returning(usersTable);
         console.log(res);

@@ -21,7 +21,7 @@ import ProfileIcon from "../assets/user-avatar-svgrepo-com.svg";
 import "../style/navbar.css";
 
 // Import Clerk hooks
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
 // Import Cart Context
 import { CartContext } from "../contexts/CartContext";
 import { UserContext } from "../contexts/UserContext";
@@ -218,9 +218,11 @@ const Navbar = () => {
               </div>
             ) : (
               <div id="loginSignupButtons">
-                <button id="loginButton" onClick={() => navigate("/login")}>
-                  <span className="btn-text">Login / SignUp</span>
-                </button>
+                <SignInButton>
+                  <button id="loginButton" onClick={() => navigate("/login")}>
+                    <span className="btn-text">Login / SignUp</span>
+                  </button>
+                </SignInButton>
               </div>
             )}
 
@@ -228,7 +230,9 @@ const Navbar = () => {
             {isLoggedIn && user && (
               <div className="profile-container" ref={profileContainerRef}>
                 <div
-                  className={`profile-content ${isProfileOpen ? "active" : "hidden"}`}
+                  className={`profile-content ${
+                    isProfileOpen ? "active" : "hidden"
+                  }`}
                   id="profileContent"
                 >
                   <div className="desktop-profile-info">
@@ -241,23 +245,38 @@ const Navbar = () => {
                     <div className="user-data">
                       <h3 id="profile-name">{user.fullName}</h3>
                       <p id="profile-email">
-                        {user.primaryPhoneNumber?.phoneNumber ||
-                          (user.phoneNumbers && user.phoneNumbers[0]?.phoneNumber) ||
+                        {user.primaryEmailAddress?.emailAddress ||
+                          user.primaryEmailAddress.emailAddress ||
                           "N/A"}
                       </p>
                     </div>
                   </div>
                   <ul>
-                    <li onClick={() => { navigate("/myorder"); closeProfileDropdownOnClick(); }}>
+                    <li
+                      onClick={() => {
+                        navigate("/myorder");
+                        closeProfileDropdownOnClick();
+                      }}
+                    >
                       <img src={MyOrderIcon} alt="" />
                       <a>My Orders</a>
                     </li>
-                    <li onClick={() => { navigate("/contact"); closeProfileDropdownOnClick(); }}>
+                    <li
+                      onClick={() => {
+                        navigate("/contact");
+                        closeProfileDropdownOnClick();
+                      }}
+                    >
                       <img src={MailUsIcon} alt="" />
                       <a>Contact Us</a>
                     </li>
                     {isLoggedIn && user && userdetails?.role === "admin" && (
-                      <li onClick={() => { navigate("/admin"); closeProfileDropdownOnClick(); }}>
+                      <li
+                        onClick={() => {
+                          navigate("/admin");
+                          closeProfileDropdownOnClick();
+                        }}
+                      >
                         <img src={AdminIcon} alt="" />
                         <a>Admin Panel</a>
                       </li>
@@ -312,7 +331,7 @@ const Navbar = () => {
                       >
                         <h3 id="mob-profile-name">{user?.fullName}</h3>
                         <p id="mob-profile-email">
-                          {user?.primaryPhoneNumber?.phoneNumber ||
+                          {user?.primaryEmailAddress?.emailAddress ||
                             (user?.phoneNumbers &&
                               user.phoneNumbers[0]?.phoneNumber) ||
                             "N/A"}
@@ -320,31 +339,48 @@ const Navbar = () => {
                       </div>
                       {!isLoggedIn && (
                         <div id="loginSignupButtons-2">
-                          <button id="loginButton">
-                            <a
-                              id="login-signup"
-                              onClick={() => navigate("/login")}
-                            >
-                              Login / Sign Up
-                            </a>
-                          </button>
+                          <SignInButton>
+                            <button id="loginButton">
+                              <a id="login-signup">Login / Sign Up</a>
+                            </button>
+                          </SignInButton>
                         </div>
                       )}
                       <ul>
-                        <li onClick={() => { navigate("/myorder"); closeProfileDropdownOnClick(); }}>
+                        <li
+                          onClick={() => {
+                            navigate("/myorder");
+                            closeProfileDropdownOnClick();
+                          }}
+                        >
                           <img src={MyOrderIcon} alt="" />
                           <a>My Orders</a>
                         </li>
-                        <li onClick={() => { navigate("/wishlist"); closeProfileDropdownOnClick(); }}>
+                        <li
+                          onClick={() => {
+                            navigate("/wishlist");
+                            closeProfileDropdownOnClick();
+                          }}
+                        >
                           <img src={WishlistIcon} alt="" />
                           <a>Wishlist</a>
                         </li>
-                        <li onClick={() => { navigate("/cart"); closeProfileDropdownOnClick(); }}>
+                        <li
+                          onClick={() => {
+                            navigate("/cart");
+                            closeProfileDropdownOnClick();
+                          }}
+                        >
                           <img src={CartIcon} alt="" />
                           <a>Cart</a>
                         </li>
                         {isLoggedIn && userdetails?.role === "admin" && (
-                          <li onClick={() => { navigate("/admin"); closeProfileDropdownOnClick(); }}>
+                          <li
+                            onClick={() => {
+                              navigate("/admin");
+                              closeProfileDropdownOnClick();
+                            }}
+                          >
                             <img src={AdminIcon} alt="" />
                             <a>Admin Panel</a>
                           </li>
